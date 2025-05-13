@@ -4,7 +4,8 @@ import { NextResponse } from 'next/server';
 
 export async function POST(req: Request) {
   try {
-    const { roomName, participantIdentity, action } = await req.json();
+    const body = await req.json();
+    const { roomName, participantIdentity, action } = body;
     console.log('Received control request:', { roomName, participantIdentity, action });
     
     if (!roomName || !participantIdentity || !action) {
@@ -91,6 +92,40 @@ export async function POST(req: Request) {
       } else if (action === 'unmute-video') {
         console.log('Unmuting video for participant:', participantIdentity);
         await roomService.mutePublishedTrack(roomName, participantIdentity, Track.Source.Camera, false);
+      } else if (action === 'remove') {
+        console.log('Removing participant:', participantIdentity);
+        await roomService.removeParticipant(roomName, participantIdentity);
+      } else if (action === 'rename') {
+        const { newIdentity } = body;
+        if (!newIdentity) {
+          console.error('Missing new identity for rename action');
+          return NextResponse.json(
+            { error: 'Missing new identity', details: { newIdentity } },
+            { status: 400 }
+          );
+        }
+        console.log('Renaming participant:', { from: participantIdentity, to: newIdentity });
+        await roomService.updateParticipant(roomName, participantIdentity, undefined, undefined, newIdentity);
+      } else if (action === 'put-in-waiting-room') {
+        console.log('Putting participant in waiting room:', participantIdentity);
+        const metadata = JSON.stringify({ inWaitingRoom: true });
+        // Restrict permissions in waiting room
+        const permissions = {
+          canPublish: false,
+          canSubscribe: false,
+          canPublishData: false
+        };
+        await roomService.updateParticipant(roomName, participantIdentity, metadata, permissions);
+      } else if (action === 'remove-from-waiting-room') {
+        console.log('Removing participant from waiting room:', participantIdentity);
+        const metadata = JSON.stringify({ inWaitingRoom: false });
+        // Restore full permissions
+        const permissions = {
+          canPublish: true,
+          canSubscribe: true,
+          canPublishData: true
+        };
+        await roomService.updateParticipant(roomName, participantIdentity, metadata, permissions);
       } else {
         console.error('Invalid action:', action);
         return NextResponse.json(

@@ -2,21 +2,33 @@ import { randomString } from '@/lib/client-utils';
 import { ConnectionDetails } from '@/lib/types';
 import { AccessToken, AccessTokenOptions, VideoGrant, RoomServiceClient } from 'livekit-server-sdk';
 import { NextRequest, NextResponse } from 'next/server';
+import { jwtDecode } from 'jwt-decode';
 
 const API_KEY = process.env.LIVEKIT_API_KEY;
 const API_SECRET = process.env.LIVEKIT_API_SECRET;
 const LIVEKIT_URL = process.env.LIVEKIT_URL;
-const COOKIE_KEY = 'random-participant-postfix';
+const COOKIE_KEY = 'participantToken';
+const jwtExpiryHours = 12;
+
+function decodeParticipantToken(token: string) {
+  try {
+    const decoded = jwtDecode(token);
+    return decoded;
+  } catch (error) {
+    throw new Error('Failed to decode participant token');
+  }
+}
 
 export async function GET(request: NextRequest) {
   try {
-    // Parse query parameters
     const roomName = request.nextUrl.searchParams.get('roomName');
     const participantName = request.nextUrl.searchParams.get('participantName');
     const metadata = request.nextUrl.searchParams.get('metadata') ?? '';
     const region = request.nextUrl.searchParams.get('region');
     const livekitServerUrl = region ? getLiveKitURL(region) : LIVEKIT_URL;
-    let randomParticipantPostfix = request.cookies.get(COOKIE_KEY)?.value;
+
+    let currentParticipantToken = request.cookies.get(COOKIE_KEY)?.value;
+
     if (livekitServerUrl === undefined) {
       throw new Error('Invalid region');
     }
@@ -26,6 +38,18 @@ export async function GET(request: NextRequest) {
     }
     if (participantName === null) {
       return new NextResponse('Missing required query parameter: participantName', { status: 400 });
+    }
+
+    let decodedToken = null;
+    if (currentParticipantToken) {
+      try {
+        decodedToken = decodeParticipantToken(currentParticipantToken);
+
+        console.log(decodedToken)
+      } catch (error) {
+        console.warn('Failed to decode current participant token:', error);
+        currentParticipantToken = undefined;
+      }
     }
 
     // Check if room exists and get participant count
@@ -39,8 +63,8 @@ export async function GET(request: NextRequest) {
       isFirstParticipant = true;
     }
 
-    // Generate participant token
-    if (!randomParticipantPostfix) {
+    let randomParticipantPostfix = '';
+    if (!currentParticipantToken) {
       randomParticipantPostfix = randomString(4);
     }
 
@@ -50,7 +74,7 @@ export async function GET(request: NextRequest) {
 
     const participantToken = await createParticipantToken(
       {
-        identity: `${participantName}__${randomParticipantPostfix}`,
+        identity: currentParticipantToken ? decodedToken!.sub : `${participantName}__${randomParticipantPostfix}`,
         name: participantName,
         metadata: userMetadata,
       },
@@ -64,10 +88,11 @@ export async function GET(request: NextRequest) {
       participantToken: participantToken,
       participantName: participantName,
     };
+
     return new NextResponse(JSON.stringify(data), {
       headers: {
         'Content-Type': 'application/json',
-        'Set-Cookie': `${COOKIE_KEY}=${randomParticipantPostfix}; Path=/; HttpOnly; SameSite=Strict; Secure; Expires=${getCookieExpirationTime()}`,
+        'Set-Cookie': `${COOKIE_KEY}=${participantToken}; Path=/; HttpOnly; SameSite=Strict; Secure; Expires=${getCookieExpirationTime()}`,
       },
     });
   } catch (error) {
@@ -79,7 +104,7 @@ export async function GET(request: NextRequest) {
 
 function createParticipantToken(userInfo: AccessTokenOptions, roomName: string) {
   const at = new AccessToken(API_KEY, API_SECRET, userInfo);
-  at.ttl = '5m';
+  at.ttl = jwtExpiryHours + "h";
   const grant: VideoGrant = {
     room: roomName,
     roomJoin: true,
@@ -109,7 +134,7 @@ function getLiveKitURL(region: string | null): string {
 function getCookieExpirationTime(): string {
   var now = new Date();
   var time = now.getTime();
-  var expireTime = time + 60 * 120 * 1000;
+  var expireTime = time + (jwtExpiryHours*60) * 60 * 1000;
   now.setTime(expireTime);
   return now.toUTCString();
 }
