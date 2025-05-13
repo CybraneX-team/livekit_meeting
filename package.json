@@ -14,6 +14,7 @@
     "@livekit/components-styles": "1.1.5",
     "@livekit/krisp-noise-filter": "0.2.16",
     "@livekit/track-processors": "^0.5.4",
+    "framer-motion": "^12.11.0",
     "jwt-decode": "^4.0.0",
     "livekit-client": "2.11.4",
     "livekit-server-sdk": "2.12.0",
@@ -21,6 +22,7 @@
     "react": "18.3.1",
     "react-dom": "18.3.1",
     "react-hot-toast": "^2.5.2",
+    "react-icons": "^5.5.0",
     "tinykeys": "^3.0.0"
   },
   "devDependencies": {
