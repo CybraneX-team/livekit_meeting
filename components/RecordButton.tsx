@@ -11,19 +11,25 @@ export function RecordButton() {
   const recordedChunksRef = useRef<Blob[]>([]);
 
   useEffect(() => {
-    // Check if the current user is the host
-    const checkHostStatus = () => {
-      if (room.state === "connected") {
-        try {
-          const metadata = localParticipant.metadata ? JSON.parse(localParticipant.metadata) : {};
-          setIsHost(metadata.role === 'host' || metadata.role === 'co-host');
-        } catch {
-          setIsHost(false);
+    const id = setInterval(() => {
+      const checkHostStatus = () => {
+        if (room.state === "connected") {
+          try {
+            const metadata = localParticipant.metadata ? JSON.parse(localParticipant.metadata) : {};
+            setIsHost(metadata.role === 'host' || metadata.role === 'co-host');
+            clearInterval(id);
+          } catch {
+            setIsHost(false);
+          }
         }
-      }
-    };
-    checkHostStatus();
-  }, [room.state]);
+      };
+      checkHostStatus();
+    }, 3000)
+
+    return () => {
+      clearInterval(id)
+    }
+  }, []);
 
   const startRecording = async () => {
     try {
