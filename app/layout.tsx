@@ -6,11 +6,10 @@ import type { Metadata, Viewport } from 'next';
 
 export const metadata: Metadata = {
   title: {
-    default: 'LiveKit Meet | Luxury Video Conferencing',
+    default: 'meeting application',
     template: '%s',
   },
-  description:
-    'LiveKit is an open source WebRTC project that gives you everything needed to build scalable and real-time audio and/or video experiences in your applications.',
+  description: "",
   twitter: {
     creator: '@livekitted',
     site: '@livekitted',
@@ -26,7 +25,7 @@ export const metadata: Metadata = {
         type: 'image/png',
       },
     ],
-    siteName: 'LiveKit Meet',
+    siteName: 'meeting application',
   },
   icons: {
     icon: {

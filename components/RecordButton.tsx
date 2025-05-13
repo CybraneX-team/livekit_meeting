@@ -13,7 +13,7 @@ export function RecordButton() {
   useEffect(() => {
     // Check if the current user is the host
     const checkHostStatus = () => {
-      if (room.state === "connected" + localParticipant) {
+      if (room.state === "connected") {
         try {
           const metadata = localParticipant.metadata ? JSON.parse(localParticipant.metadata) : {};
           setIsHost(metadata.role === 'host' || metadata.role === 'co-host');
