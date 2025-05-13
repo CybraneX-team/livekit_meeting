@@ -24,7 +24,7 @@ export const RaiseHandButton = () => {
       className={`fixed bottom-24 right-4 z-50 p-3 rounded-full shadow-lg transition-all duration-200 bg-gray-700 hover:bg-gray-600`}
       style={{
         position: 'fixed',
-        bottom: '10px',
+        top: '80px',
         right: '20px',
         width: '48px',
         height: '48px',
