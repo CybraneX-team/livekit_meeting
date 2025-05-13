@@ -3,7 +3,7 @@ import { ConnectionDetails } from '@/lib/types';
 import { AccessToken, AccessTokenOptions, VideoGrant, RoomServiceClient } from 'livekit-server-sdk';
 import { NextRequest, NextResponse } from 'next/server';
 import { jwtDecode } from 'jwt-decode';
-import { isKicked } from '@/lib/blacklist';
+import { isKicked } from '@/lib/blackList';
 
 const API_KEY = process.env.LIVEKIT_API_KEY;
 const API_SECRET = process.env.LIVEKIT_API_SECRET;
@@ -58,7 +58,8 @@ export async function GET(request: NextRequest) {
         headers: { 'Content-Type': 'application/json' },
       });
     }
-
+    
+    // @ts-ignore
     if(currentParticipantToken && decodedToken && decodedToken.video.room === roomName) {
       const data: ConnectionDetails = {
         serverUrl: livekitServerUrl,

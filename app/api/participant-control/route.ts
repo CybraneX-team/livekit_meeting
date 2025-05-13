@@ -1,7 +1,7 @@
 import { RoomServiceClient } from 'livekit-server-sdk';
 import { Track } from 'livekit-client';
 import { NextResponse } from 'next/server';
-import { kickUser } from '@/lib/blacklist';
+import { kickUser } from '@/lib/blackList';
 
 export async function POST(req: Request) {
   try {
