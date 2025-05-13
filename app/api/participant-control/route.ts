@@ -1,6 +1,7 @@
 import { RoomServiceClient } from 'livekit-server-sdk';
 import { Track } from 'livekit-client';
 import { NextResponse } from 'next/server';
+import { kickUser } from '@/lib/blacklist';
 
 export async function POST(req: Request) {
   try {
@@ -95,6 +96,7 @@ export async function POST(req: Request) {
       } else if (action === 'remove') {
         console.log('Removing participant:', participantIdentity);
         await roomService.removeParticipant(roomName, participantIdentity);
+        kickUser(participantIdentity)
       } else if (action === 'rename') {
         const { newIdentity } = body;
         if (!newIdentity) {
@@ -120,6 +122,26 @@ export async function POST(req: Request) {
         console.log('Removing participant from waiting room:', participantIdentity);
         const metadata = JSON.stringify({ inWaitingRoom: false });
         // Restore full permissions
+        const permissions = {
+          canPublish: true,
+          canSubscribe: true,
+          canPublishData: true
+        };
+        await roomService.updateParticipant(roomName, participantIdentity, metadata, permissions);
+      } else if (action === 'make-cohost') {
+        console.log('Making participant co-host:', participantIdentity);
+        const metadata = JSON.stringify({ role: 'co-host' });
+        // Co-hosts get full permissions
+        const permissions = {
+          canPublish: true,
+          canSubscribe: true,
+          canPublishData: true
+        };
+        await roomService.updateParticipant(roomName, participantIdentity, metadata, permissions);
+      } else if (action === 'remove-cohost') {
+        console.log('Removing co-host status from participant:', participantIdentity);
+        const metadata = JSON.stringify({ role: 'participant' });
+        // Regular participant permissions
         const permissions = {
           canPublish: true,
           canSubscribe: true,

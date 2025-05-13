@@ -13,8 +13,6 @@ export function ParticipantList() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [isOpenDialogue, setIsOpenDialogue] = useState<boolean>(false);
   const [dialogueParticipant, setdialogueParticipant] = useState<RemoteParticipant>();
-  const [isOpenWaiting, setisOpenWaiting] = useState<boolean>(false);
-  const [waitingParticipant, setwaitingParticipant] = useState<RemoteParticipant>();
 
   useEffect(() => {
     if(room.state === "connected") {
@@ -23,6 +21,7 @@ export function ParticipantList() {
           try {
             const metadata = localParticipant.metadata ? JSON.parse(localParticipant.metadata) : {};
             const isHostRole = metadata.role === 'host' || metadata.role === 'co-host';
+            console.log(isHostRole)
             setIsHost(isHostRole);
           } catch (error) {
             console.error('Error parsing participant metadata:', error);
@@ -54,6 +53,8 @@ export function ParticipantList() {
             room.localParticipant.setCameraEnabled(false);
           } else if (data.action === 'unmute-video') {
             room.localParticipant.setCameraEnabled(true);
+          } else if(data.action === 'toggle-cohost') {
+            setIsHost(bool => !bool)
           }
         }
       } catch (error) {
@@ -216,6 +217,87 @@ export function ParticipantList() {
     }
   }
 
+  const toggleCoHost = async (participant: RemoteParticipant) => {
+    if (!isHost || isProcessing) {
+      console.log('Some other action is in process or you do not permissions', { isHost, isProcessing });
+      return;
+    }
+    
+    if(room.state !== "connected") {
+      return;
+    }
+
+    try {
+      setIsProcessing(true);
+
+      const url = new URL(CONN_DETAILS_ENDPOINT, window.location.origin);
+
+      const payload = {
+        roomName: room.name,
+        participantIdentity: participant.identity,
+        action: (JSON.parse(participant.metadata + "").role === "co-host") ? 'remove-cohost' : "make-cohost",
+      };
+
+      await fetch(url.toString(), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const data = {
+        type: 'control',
+        action: 'toggle-cohost',
+        target: participant.identity
+      };
+      
+      await room.localParticipant.publishData(
+        new TextEncoder().encode(JSON.stringify(data)),
+        { reliable: true }
+      );
+    } catch (error) {
+      console.error('Error toggling video:', error);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const toggleWaitingRoom = async (participant: RemoteParticipant) => {
+    if (!isHost || isProcessing) {
+      console.log('Some other action is in process or you do not permissions', { isHost, isProcessing });
+      return;
+    }
+    
+    if(room.state !== "connected") {
+      return;
+    }
+
+    try {
+      setIsProcessing(true);
+
+      const url = new URL(CONN_DETAILS_ENDPOINT, window.location.origin);
+
+      const payload = {
+        roomName: room.name,
+        participantIdentity: participant.identity,
+        action: !(JSON.parse(participant.metadata + "").inWaitingRoom) ? 'put-in-waiting-room' : "remove-from-waiting-room",
+      };
+
+      await fetch(url.toString(), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
+    } catch (error) {
+      console.error('Error toggling video:', error);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   interface DialogProps {
     isOpen: boolean;
     setIsOpen: (open: boolean) => void;
@@ -324,7 +406,6 @@ export function ParticipantList() {
             width: 'calc(100vw - 40px)',
           }}
         >
-          {/* <h3 style={{ margin: '0 0 16px 0' }}>Participants ({participants.length})</h3> */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             {participants.map((participant) => {
               const metadata = participant.metadata ? JSON.parse(participant.metadata) : {};
@@ -354,134 +435,137 @@ export function ParticipantList() {
                     </span>
                   </div>
 
-                  <div style={{ display: 'flex', gap: '8px' }}>
-                    <button
-                      onClick={() => toggleParticipantAudio(participant as RemoteParticipant)}
-                      disabled={!isHost || isLocal || isProcessing}
-                      title={isHost ? (isMuted ? 'Unmute participant' : 'Mute participant') : 'Only host can control audio'}
-                      style={{
-                        padding: '8px',
-                        background: !isMuted ? 'var(--lk-bg2)' : 'var(--lk-danger)',
-                        color: 'var(--lk-text)',
-                        border: '1px solid var(--lk-border)',
-                        borderRadius: '4px',
-                        cursor: isHost && !isLocal && !isProcessing ? 'pointer' : 'not-allowed',
-                        opacity: isHost && !isLocal && !isProcessing ? 1 : 0.7,
-                        transition: 'all 0.2s ease',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        minWidth: '36px'
-                      }}
-                    >
-                      {!isMuted ? '🔊' : '🔇'}
-                    </button>
-                    <button
-                      onClick={() => toggleParticipantVideo(participant as RemoteParticipant)}
-                      disabled={!isHost || isLocal || isProcessing}
-                      title={isHost ? (isVideoDisabled ? 'Start video' : 'Stop video') : 'Only host can control video'}
-                      style={{
-                        padding: '8px',
-                        background: !isVideoDisabled ? 'var(--lk-bg2)' : 'var(--lk-danger)',
-                        color: 'var(--lk-text)',
-                        border: '1px solid var(--lk-border)',
-                        borderRadius: '4px',
-                        cursor: isHost && !isLocal && !isProcessing ? 'pointer' : 'not-allowed',
-                        opacity: isHost && !isLocal && !isProcessing ? 1 : 0.7,
-                        transition: 'all 0.2s ease',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        minWidth: '36px'
-                      }}
-                    >
-                      {!isVideoDisabled ? '📹' : '📷'}
-                    </button>
-                    <button
-                      onClick={() => kickParticipant(participant as RemoteParticipant)}
-                      disabled={!isHost || isLocal || isProcessing}
-                      title='Only host can kick a participant'
-                      style={{
-                        padding: '8px',
-                        background: 'var(--lk-bg2)',
-                        color: 'var(--lk-text)',
-                        border: '1px solid var(--lk-border)',
-                        borderRadius: '4px',
-                        cursor: isHost && !isLocal && !isProcessing ? 'pointer' : 'not-allowed',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        minWidth: '36px'
-                      }}
-                    >
-                      ❌
-                    </button>
-                    <button
-                      onClick={() => {
-                        setdialogueParticipant(participant as RemoteParticipant)
-                        setIsOpenDialogue(true)
-                      }}
-                      disabled={!isHost || isLocal || isProcessing}
-                      style={{
-                        padding: '8px',
-                        background: 'var(--lk-bg2)',
-                        color: 'var(--lk-text)',
-                        border: '1px solid var(--lk-border)',
-                        borderRadius: '4px',
-                        cursor: isHost && !isLocal && !isProcessing ? 'pointer' : 'not-allowed',
-                        opacity: isHost && !isLocal && !isProcessing ? 1 : 0.7,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        minWidth: '36px'
-                      }}
-                    >
-                      @
-                    </button>
-                    <button
-                      onClick={() => {
-                        setwaitingParticipant(participant as RemoteParticipant)
-                        setisOpenWaiting(true)
-                      }}
-                      disabled={!isHost || isLocal || isProcessing}
-                      style={{
-                        padding: '8px',
-                        background: 'var(--lk-bg2)',
-                        color: 'var(--lk-text)',
-                        border: '1px solid var(--lk-border)',
-                        borderRadius: '4px',
-                        cursor: isHost && !isLocal && !isProcessing ? 'pointer' : 'not-allowed',
-                        opacity: isHost && !isLocal && !isProcessing ? 1 : 0.7,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        minWidth: '36px'
-                      }}
-                    >
-                      🚪
-                    </button>
-                    <button
-                      onClick={() => toggleParticipantVideo(participant as RemoteParticipant)}
-                      disabled={!isHost || isLocal || isProcessing}
-                      title={isHost ? (isVideoDisabled ? 'Start video' : 'Stop video') : 'Only host can control video'}
-                      style={{
-                        padding: '8px',
-                        background: !isVideoDisabled ? 'var(--lk-bg2)' : 'var(--lk-danger)',
-                        color: 'var(--lk-text)',
-                        border: '1px solid var(--lk-border)',
-                        borderRadius: '4px',
-                        cursor: isHost && !isLocal && !isProcessing ? 'pointer' : 'not-allowed',
-                        opacity: isHost && !isLocal && !isProcessing ? 1 : 0.7,
-                        transition: 'all 0.2s ease',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        minWidth: '36px'
-                      }}
-                    >
-                      {!isVideoDisabled ? '📹' : '📷'}
-                    </button>
-                  </div>
+                  {
+                    isHost ?
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                        <button
+                          onClick={() => toggleParticipantAudio(participant as RemoteParticipant)}
+                          disabled={!isHost || isLocal || isProcessing}
+                          title={isHost ? (isMuted ? 'Unmute participant' : 'Mute participant') : 'Only host can control audio'}
+                          style={{
+                            padding: '8px',
+                            background: !isMuted ? 'var(--lk-bg2)' : 'var(--lk-danger)',
+                            color: 'var(--lk-text)',
+                            border: '1px solid var(--lk-border)',
+                            borderRadius: '4px',
+                            cursor: isHost && !isLocal && !isProcessing ? 'pointer' : 'not-allowed',
+                            opacity: isHost && !isLocal && !isProcessing ? 1 : 0.7,
+                            transition: 'all 0.2s ease',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            minWidth: '36px'
+                          }}
+                        >
+                          {!isMuted ? '🔊' : '🔇'}
+                        </button>
+                        <button
+                          onClick={() => toggleParticipantVideo(participant as RemoteParticipant)}
+                          disabled={!isHost || isLocal || isProcessing}
+                          title={isHost ? (isVideoDisabled ? 'Start video' : 'Stop video') : 'Only host can control video'}
+                          style={{
+                            padding: '8px',
+                            background: !isVideoDisabled ? 'var(--lk-bg2)' : 'var(--lk-danger)',
+                            color: 'var(--lk-text)',
+                            border: '1px solid var(--lk-border)',
+                            borderRadius: '4px',
+                            cursor: isHost && !isLocal && !isProcessing ? 'pointer' : 'not-allowed',
+                            opacity: isHost && !isLocal && !isProcessing ? 1 : 0.7,
+                            transition: 'all 0.2s ease',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            minWidth: '36px'
+                          }}
+                        >
+                          {!isVideoDisabled ? '📹' : '📷'}
+                        </button>
+                        <button
+                          onClick={() => kickParticipant(participant as RemoteParticipant)}
+                          disabled={!isHost || isLocal || isProcessing}
+                          title='Only host can kick a participant'
+                          style={{
+                            padding: '8px',
+                            background: 'var(--lk-bg2)',
+                            color: 'var(--lk-text)',
+                            border: '1px solid var(--lk-border)',
+                            borderRadius: '4px',
+                            cursor: isHost && !isLocal && !isProcessing ? 'pointer' : 'not-allowed',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            minWidth: '36px'
+                          }}
+                        >
+                          ❌
+                        </button>
+                        <button
+                          onClick={() => {
+                            setdialogueParticipant(participant as RemoteParticipant)
+                            setIsOpenDialogue(true)
+                          }}
+                          disabled={!isHost || isLocal || isProcessing}
+                          style={{
+                            padding: '8px',
+                            background: 'var(--lk-bg2)',
+                            color: 'var(--lk-text)',
+                            border: '1px solid var(--lk-border)',
+                            borderRadius: '4px',
+                            cursor: isHost && !isLocal && !isProcessing ? 'pointer' : 'not-allowed',
+                            opacity: isHost && !isLocal && !isProcessing ? 1 : 0.7,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            minWidth: '36px'
+                          }}
+                        >
+                          @
+                        </button>
+                        <button
+                          onClick={() => {
+                            toggleWaitingRoom(participant as RemoteParticipant)
+                          }}
+                          disabled={!isHost || isLocal || isProcessing}
+                          style={{
+                            padding: '8px',
+                            background: 'var(--lk-bg2)',
+                            color: 'var(--lk-text)',
+                            border: '1px solid var(--lk-border)',
+                            borderRadius: '4px',
+                            cursor: isHost && !isLocal && !isProcessing ? 'pointer' : 'not-allowed',
+                            opacity: isHost && !isLocal && !isProcessing ? 1 : 0.7,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            minWidth: '36px'
+                          }}
+                        >
+                          🚪
+                        </button>
+                        <button
+                          onClick={() => {
+                            toggleCoHost(participant as RemoteParticipant)
+                          }}
+                          disabled={!isHost || isLocal || isProcessing}
+                          style={{
+                            padding: '8px',
+                            background: 'var(--lk-bg2)',
+                            color: 'var(--lk-text)',
+                            border: '1px solid var(--lk-border)',
+                            borderRadius: '4px',
+                            cursor: isHost && !isLocal && !isProcessing ? 'pointer' : 'not-allowed',
+                            opacity: isHost && !isLocal && !isProcessing ? 1 : 0.7,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            minWidth: '36px'
+                          }}
+                        >
+                          ♔
+                        </button>
+                    </div>
+                    : <></>
+                  }
                 </div>
               );
             })}

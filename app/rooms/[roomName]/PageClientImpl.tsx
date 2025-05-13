@@ -23,9 +23,12 @@ import {
   DeviceUnsupportedError,
   RoomConnectOptions,
   RoomEvent,
+  RemoteParticipant,
 } from 'livekit-client';
 import { useRouter } from 'next/navigation';
-import React from 'react';
+import React, { useState } from 'react';
+import { RaiseHandButton } from '@/components/RaiseHandButton';
+import Notification from '@/components/Notification';
 
 const CONN_DETAILS_ENDPOINT = process.env.NEXT_PUBLIC_CONN_DETAILS_ENDPOINT ?? '/api/connection-details';
 const SHOW_SETTINGS_MENU = process.env.NEXT_PUBLIC_SHOW_SETTINGS_MENU == 'true';
@@ -46,27 +49,31 @@ export function PageClientImpl(props: {
       audioEnabled: true,
     };
   }, []);
-  const [connectionDetails, setConnectionDetails] = React.useState<ConnectionDetails | undefined>(
-    undefined,
-  );
+  const [connectionDetails, setConnectionDetails] = React.useState<ConnectionDetails | undefined>(undefined);
 
   const handlePreJoinSubmit = React.useCallback(async (values: LocalUserChoices) => {
     setPreJoinChoices(values);
+
     const url = new URL(CONN_DETAILS_ENDPOINT, window.location.origin);
+
     url.searchParams.append('roomName', props.roomName);
     url.searchParams.append('participantName', values.username);
+
     if (props.region) {
       url.searchParams.append('region', props.region);
     }
+
     const connectionDetailsResp = await fetch(url.toString());
     const connectionDetailsData = await connectionDetailsResp.json();
+
     setConnectionDetails(connectionDetailsData);
   }, []);
+
   const handlePreJoinError = React.useCallback((e: any) => console.error(e), []);
 
   return (
     <main data-lk-theme="default" style={{ height: '100%' }}>
-      {connectionDetails === undefined || preJoinChoices === undefined ? (
+      {(!connectionDetails || preJoinChoices === undefined) ? (
         <div style={{ display: 'grid', placeItems: 'center', height: '100%' }}>
           <PreJoin
             defaults={preJoinDefaults}
@@ -211,6 +218,32 @@ function VideoConferenceComponent(props: {
     );
   }, []);
 
+  const [notify, setNotify] = useState<boolean>(false);
+  const [notifyText, setNotifyText] = useState<string>('');
+
+  React.useEffect(() => {
+    const handleData = (payload: Uint8Array, participant?: RemoteParticipant) => {
+      try {
+        const data = JSON.parse(new TextDecoder().decode(payload));
+        // console.log('Received control message:', data);
+        
+        if (data.type === 'notify') {
+          if (data.action === 'hand') {
+            setNotify(true)
+            setNotifyText(`${data.name} rasied hand!`)
+          }
+        }
+      } catch (error) {
+        console.error('Error handling data message:', error);
+      }
+    };
+
+    room.on('dataReceived', handleData);
+    return () => {
+      room.off('dataReceived', handleData);
+    };
+  }, [room.state]);
+
   return (
     <div className="lk-room-container" style={{ position: 'relative', height: '100vh' }}>
       <RoomContext.Provider value={room}>
@@ -221,7 +254,8 @@ function VideoConferenceComponent(props: {
         <ParticipantList />
         <RecordButton />
         <DebugMode />
-        <RecordingIndicator />
+        <RaiseHandButton/>
+        <Notification visible={notify} setVisible={setNotify} text={notifyText}/>
       </RoomContext.Provider>
     </div>
   );

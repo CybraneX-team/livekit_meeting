@@ -1,5 +1,5 @@
 import { useRoomContext, useLocalParticipant } from '@livekit/components-react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
 export function RecordButton() {
   const room = useRoomContext();
@@ -7,27 +7,94 @@ export function RecordButton() {
   const [isHost, setIsHost] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const recordedChunksRef = useRef<Blob[]>([]);
 
   useEffect(() => {
     // Check if the current user is the host
     const checkHostStatus = () => {
-      if (localParticipant) {
+      if (room.state === "connected" + localParticipant) {
         try {
           const metadata = localParticipant.metadata ? JSON.parse(localParticipant.metadata) : {};
-          setIsHost(metadata.role === 'host');
+          setIsHost(metadata.role === 'host' || metadata.role === 'co-host');
         } catch {
           setIsHost(false);
         }
       }
     };
     checkHostStatus();
-  }, [localParticipant]);
+  }, [room.state]);
 
-  const toggleRecording = () => {
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getDisplayMedia({
+        video: {
+          displaySurface: 'monitor'
+        },
+        audio: true
+      });
+
+      const mediaRecorder = new MediaRecorder(stream, {
+        mimeType: 'video/webm;codecs=vp9'
+      });
+
+      mediaRecorderRef.current = mediaRecorder;
+      recordedChunksRef.current = [];
+
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          recordedChunksRef.current.push(event.data);
+        }
+      };
+
+      mediaRecorder.onstop = () => {
+        const blob = new Blob(recordedChunksRef.current, {
+          type: 'video/webm'
+        });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        document.body.appendChild(a);
+        a.style.display = 'none';
+        a.href = url;
+        a.download = `recording-${new Date().toISOString()}.webm`;
+        a.click();
+        URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+
+        // Stop all tracks
+        stream.getTracks().forEach(track => track.stop());
+      };
+
+      mediaRecorder.start();
+      setIsRecording(true);
+    } catch (err) {
+      console.error('Error starting recording:', err);
+      alert('Failed to start recording. Please make sure you have granted screen sharing permissions.');
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
+    }
+  };
+
+  const toggleRecording = async () => {
     if (!isHost || isProcessing) return;
     setIsProcessing(true);
-    setIsRecording((prev) => !prev);
-    setTimeout(() => setIsProcessing(false), 500); // Simulate a short delay
+    
+    try {
+      if (isRecording) {
+        stopRecording();
+      } else {
+        await startRecording();
+      }
+    } catch (err) {
+      console.error('Error toggling recording:', err);
+    } finally {
+      setTimeout(() => setIsProcessing(false), 500);
+    }
   };
 
   if (!isHost) return null;
@@ -38,7 +105,7 @@ export function RecordButton() {
       disabled={isProcessing}
       style={{
         position: 'fixed',
-        top: '20px',
+        top: '80px',
         left: '20px',
         padding: '8px 16px',
         background: isRecording ? 'var(--lk-danger)' : 'var(--lk-bg2)',
@@ -53,7 +120,7 @@ export function RecordButton() {
         gap: '8px'
       }}
     >
-      <span style={{ fontSize: '1.2em', color: '#ff1744' }}>
+      <span style={{ fontSize: '1.2em', color: isRecording ? '#ff1744' : 'inherit' }}>
         {isRecording ? '⏺️' : '⏺️'}
       </span>
       {isRecording ? 'Stop Recording' : 'Start Recording'}

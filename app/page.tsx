@@ -15,7 +15,6 @@ export default function Page() {
   return (
     <main className={styles.main} data-lk-theme="default">
       <div className="header">
-        <img src="/images/livekit-meet-home.svg" alt="LiveKit Meet" width="360" height="45" />
         <h2>
           Redirecting to dashboard...
         </h2> 

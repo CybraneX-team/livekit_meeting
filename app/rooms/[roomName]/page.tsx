@@ -14,6 +14,7 @@ export default async function Page({
     codec?: string;
   }>;
 }) {
+
   const _params = await params;
   const _searchParams = await searchParams;
   const codec =
@@ -23,11 +24,13 @@ export default async function Page({
   const hq = _searchParams.hq === 'true' ? true : false;
 
   return (
-    <PageClientImpl
-      roomName={_params.roomName}
-      region={_searchParams.region}
-      hq={hq}
-      codec={codec}
-    />
+    <>
+      <PageClientImpl
+        roomName={_params.roomName}
+        region={_searchParams.region}
+        hq={hq}
+        codec={codec}
+      />
+    </>
   );
 }

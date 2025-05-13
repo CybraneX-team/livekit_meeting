@@ -3,6 +3,7 @@ import { ConnectionDetails } from '@/lib/types';
 import { AccessToken, AccessTokenOptions, VideoGrant, RoomServiceClient } from 'livekit-server-sdk';
 import { NextRequest, NextResponse } from 'next/server';
 import { jwtDecode } from 'jwt-decode';
+import { isKicked } from '@/lib/blacklist';
 
 const API_KEY = process.env.LIVEKIT_API_KEY;
 const API_SECRET = process.env.LIVEKIT_API_SECRET;
@@ -44,57 +45,77 @@ export async function GET(request: NextRequest) {
     if (currentParticipantToken) {
       try {
         decodedToken = decodeParticipantToken(currentParticipantToken);
-
-        console.log(decodedToken)
       } catch (error) {
         console.warn('Failed to decode current participant token:', error);
         currentParticipantToken = undefined;
       }
     }
 
-    // Check if room exists and get participant count
-    const roomService = new RoomServiceClient(livekitServerUrl, API_KEY, API_SECRET);
-    let isFirstParticipant = false;
-    try {
-      const rooms = await roomService.listRooms([roomName]);
-      isFirstParticipant = rooms.length === 0 || rooms[0].numParticipants === 0;
-    } catch (error) {
-      // Room doesn't exist yet, this is the first participant
-      isFirstParticipant = true;
+    console.log(decodedToken)
+
+    if(isKicked(decodedToken?.sub + "")) {
+      return new NextResponse(JSON.stringify({}), {
+        headers: { 'Content-Type': 'application/json' },
+      });
     }
 
-    let randomParticipantPostfix = '';
-    if (!currentParticipantToken) {
-      randomParticipantPostfix = randomString(4);
+    if(currentParticipantToken && decodedToken && decodedToken.video.room === roomName) {
+      const data: ConnectionDetails = {
+        serverUrl: livekitServerUrl,
+        roomName: roomName,
+        participantToken: currentParticipantToken,
+        participantName: participantName,
+      };
+
+      return new NextResponse(JSON.stringify(data), {
+        headers: { 'Content-Type': 'application/json' },
+      });
+    } else {
+      // Check if room exists and get participant count
+      const roomService = new RoomServiceClient(livekitServerUrl, API_KEY, API_SECRET);
+      let isFirstParticipant = false;
+
+      try {
+        const rooms = await roomService.listRooms([roomName]);
+        isFirstParticipant = rooms.length === 0 || rooms[0].numParticipants === 0;
+      } catch (error) {
+        // Room doesn't exist yet, this is the first participant
+        isFirstParticipant = true;
+      }
+
+      let randomParticipantPostfix = '';
+      if (!currentParticipantToken) {
+        randomParticipantPostfix = randomString(4);
+      }
+
+      // Set role based on whether this is the first participant
+      const role = isFirstParticipant ? 'host' : 'participant';
+      const userMetadata = JSON.stringify({ role, ...JSON.parse(metadata || '{}') });
+
+      const participantToken = await createParticipantToken(
+        {
+          identity: `${participantName}__${randomParticipantPostfix}`,
+          name: participantName,
+          metadata: userMetadata,
+        },
+        roomName,
+      );
+
+      // Return connection details
+      const data: ConnectionDetails = {
+        serverUrl: livekitServerUrl,
+        roomName: roomName,
+        participantToken: participantToken,
+        participantName: participantName,
+      };
+
+      return new NextResponse(JSON.stringify(data), {
+        headers: {
+          'Content-Type': 'application/json',
+          'Set-Cookie': `${COOKIE_KEY}=${participantToken}; Path=/; HttpOnly; SameSite=Strict; Secure; Expires=${getCookieExpirationTime()}`,
+        },
+      });
     }
-
-    // Set role based on whether this is the first participant
-    const role = isFirstParticipant ? 'host' : 'participant';
-    const userMetadata = JSON.stringify({ role, ...JSON.parse(metadata || '{}') });
-
-    const participantToken = await createParticipantToken(
-      {
-        identity: currentParticipantToken ? decodedToken!.sub : `${participantName}__${randomParticipantPostfix}`,
-        name: participantName,
-        metadata: userMetadata,
-      },
-      roomName,
-    );
-
-    // Return connection details
-    const data: ConnectionDetails = {
-      serverUrl: livekitServerUrl,
-      roomName: roomName,
-      participantToken: participantToken,
-      participantName: participantName,
-    };
-
-    return new NextResponse(JSON.stringify(data), {
-      headers: {
-        'Content-Type': 'application/json',
-        'Set-Cookie': `${COOKIE_KEY}=${participantToken}; Path=/; HttpOnly; SameSite=Strict; Secure; Expires=${getCookieExpirationTime()}`,
-      },
-    });
   } catch (error) {
     if (error instanceof Error) {
       return new NextResponse(error.message, { status: 500 });

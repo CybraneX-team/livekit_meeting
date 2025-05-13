@@ -1,18 +1,19 @@
 import React, { useState } from 'react';
 
-const Notification: React.FC = () => {
-  const [visible, setVisible] = useState<boolean>(true);
-
+interface NotificationProps {
+    visible: boolean;
+    setVisible: React.Dispatch<React.SetStateAction<boolean>>;
+    text: string;
+  }
+  
+  const Notification: React.FC<NotificationProps> = ({ visible, setVisible, text }) => {
   if (!visible) return null;
 
   return (
     <div style={styles.container}>
       <div style={styles.messageBox}>
-        <span style={styles.message}>🚀 New feature available! Check it out now.</span>
+        <span style={styles.message}>{text}</span>
         <div style={styles.actions}>
-          <button style={styles.ctaButton} onClick={() => alert('CTA clicked!')}>
-            Learn More
-          </button>
           <button style={styles.dismissButton} onClick={() => setVisible(false)}>
             ×
           </button>
@@ -27,7 +28,7 @@ const styles: { [key: string]: React.CSSProperties } = {
     position: 'fixed',
     top: '20px',
     right: '20px',
-    zIndex: 1000,
+    zIndex: 1110,
   },
   messageBox: {
     backgroundColor: '#f0f4ff',
