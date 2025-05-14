@@ -13,7 +13,12 @@ import { FaHandPaper } from "react-icons/fa";
 
 const CONN_DETAILS_ENDPOINT = '/api/participant-control';
 
-export function ParticipantList({ handVisible, participantIdentityHand }) {
+interface ParticipantListProps {
+  handVisible: boolean;
+  participantIdentityHand: string;
+}
+
+export function ParticipantList({ handVisible, participantIdentityHand }: ParticipantListProps) {
   const room = useRoomContext();
   const participants = useParticipants();
   const [isListVisible, setIsListVisible] = useState(false);
