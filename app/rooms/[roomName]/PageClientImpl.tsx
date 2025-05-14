@@ -24,6 +24,7 @@ import {
   RoomConnectOptions,
   RoomEvent,
   RemoteParticipant,
+  LocalParticipant,
 } from 'livekit-client';
 import { useRouter } from 'next/navigation';
 import React, { useState } from 'react';
@@ -220,6 +221,8 @@ function VideoConferenceComponent(props: {
 
   const [notify, setNotify] = useState<boolean>(false);
   const [notifyText, setNotifyText] = useState<string>('');
+  const [handVisible, setHandVisible] = useState(false)
+  const [participantIdentityHand, setParticipantIdentityHand] = useState("")
 
   React.useEffect(() => {
     const handleData = (payload: Uint8Array, participant?: RemoteParticipant) => {
@@ -228,9 +231,15 @@ function VideoConferenceComponent(props: {
         // console.log('Received control message:', data);
         
         if (data.type === 'notify') {
-          if (data.action === 'hand') {
+          if (data.action === 'raise') {
             setNotify(true)
             setNotifyText(`${data.name} rasied hand!`)
+            setHandVisible(true)
+            setParticipantIdentityHand(data.identity)
+          } else if(data.action === 'lower') {
+            setNotify(false)
+            setHandVisible(false)
+            setParticipantIdentityHand("")
           }
         }
       } catch (error) {
@@ -251,7 +260,7 @@ function VideoConferenceComponent(props: {
           chatMessageFormatter={formatChatMessageLinks}
           SettingsComponent={SHOW_SETTINGS_MENU ? SettingsMenu : undefined}
         />
-        <ParticipantList />
+        <ParticipantList handVisible={handVisible} participantIdentityHand={participantIdentityHand} />
         <RecordButton />
         <DebugMode />
         <RaiseHandButton/>

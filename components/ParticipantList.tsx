@@ -1,15 +1,25 @@
 import { useParticipants, useRoomContext, useLocalParticipant } from '@livekit/components-react';
 import { useState, useEffect } from 'react';
 import { Track, RemoteParticipant, ParticipantEvent, DataPacket_Kind, Participant } from 'livekit-client';
+import { CiCircleRemove } from "react-icons/ci"; 
+import { MdOutlineDriveFileRenameOutline } from "react-icons/md";
+import { FaDoorOpen } from "react-icons/fa";
+import { MdOutlinePerson4 } from "react-icons/md";
+import { HiMiniVideoCamera } from "react-icons/hi2";
+import { HiVideoCameraSlash } from "react-icons/hi2";
+import { AiFillAudio } from "react-icons/ai";
+import { AiOutlineAudioMuted } from "react-icons/ai";
+import { FaHandPaper } from "react-icons/fa";
 
 const CONN_DETAILS_ENDPOINT = '/api/participant-control';
 
-export function ParticipantList() {
+export function ParticipantList({ handVisible, participantIdentityHand }) {
   const room = useRoomContext();
   const participants = useParticipants();
   const [isListVisible, setIsListVisible] = useState(false);
   const { localParticipant } = useLocalParticipant();
   const [isHost, setIsHost] = useState(false);
+  const [isCoHost, setIsCoHost] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isOpenDialogue, setIsOpenDialogue] = useState<boolean>(false);
   const [dialogueParticipant, setdialogueParticipant] = useState<RemoteParticipant>();
@@ -20,16 +30,16 @@ export function ParticipantList() {
         if(localParticipant) {
           try {
             const metadata = localParticipant.metadata ? JSON.parse(localParticipant.metadata) : {};
-            const isHostRole = metadata.role === 'host' || metadata.role === 'co-host';
-            console.log(isHostRole)
-            setIsHost(isHostRole);
+            if(metadata.role === 'host') {
+              setIsHost(true)
+            } else if(metadata.role === 'co-host') {
+              setIsHost(true)
+            }
           } catch (error) {
             console.error('Error parsing participant metadata:', error);
-            setIsHost(false);
           }
         } else {
           console.log('No local participant found');
-          setIsHost(false);
         }
       };
 
@@ -73,8 +83,8 @@ export function ParticipantList() {
   };
 
   const toggleParticipantAudio = async (participant: RemoteParticipant) => {
-    if (!isHost || isProcessing) {
-      console.log('Cannot toggle audio:', { isHost, isProcessing });
+    if (isProcessing) {
+      console.log('Cannot toggle audio:', { isHost, isCoHost, isProcessing });
       return;
     }
     
@@ -87,7 +97,8 @@ export function ParticipantList() {
         participant: participant.identity, 
         action,
         roomName: room.name,
-        isHost
+        isHost,
+        isCoHost
       });
 
       // Send control message via data channel
@@ -110,8 +121,8 @@ export function ParticipantList() {
   };
 
   const toggleParticipantVideo = async (participant: RemoteParticipant) => {
-    if (!isHost || isProcessing) {
-      console.log('Cannot toggle video:', { isHost, isProcessing });
+    if (isProcessing) {
+      console.log('Cannot toggle video:', { isHost, isCoHost, isProcessing });
       return;
     }
     
@@ -124,7 +135,8 @@ export function ParticipantList() {
         participant: participant.identity, 
         action,
         roomName: room.name,
-        isHost
+        isHost,
+        isCoHost
       });
 
       // Send control message via data channel
@@ -155,8 +167,8 @@ export function ParticipantList() {
   };
 
   const kickParticipant = async (participant: RemoteParticipant) => {
-    if (!isHost || isProcessing) {
-      console.log('Some other action is in process or you do not permissions', { isHost, isProcessing });
+    if (isProcessing) {
+      console.log('Some other action is in process or you do not permissions', { isHost, isCoHost, isProcessing });
       return;
     }
     
@@ -186,8 +198,8 @@ export function ParticipantList() {
   };
 
   const renameParticipant = async (participant: RemoteParticipant, renameTo: String) => {
-    if (!isHost || isProcessing) {
-      console.log('Some other action is in process or you do not permissions', { isHost, isProcessing });
+    if (isProcessing) {
+      console.log('Some other action is in process or you do not permissions', { isHost, isCoHost, isProcessing });
       return;
     }
     
@@ -218,8 +230,8 @@ export function ParticipantList() {
   }
 
   const toggleCoHost = async (participant: RemoteParticipant) => {
-    if (!isHost || isProcessing) {
-      console.log('Some other action is in process or you do not permissions', { isHost, isProcessing });
+    if (isProcessing) {
+      console.log('Some other action is in process or you do not permissions', { isHost, isCoHost, isProcessing });
       return;
     }
     
@@ -264,8 +276,8 @@ export function ParticipantList() {
   };
 
   const toggleWaitingRoom = async (participant: RemoteParticipant) => {
-    if (!isHost || isProcessing) {
-      console.log('Some other action is in process or you do not permissions', { isHost, isProcessing });
+    if (isProcessing) {
+      console.log('Some other action is in process or you do not permissions', { isHost, isCoHost, isProcessing });
       return;
     }
     
@@ -423,7 +435,8 @@ export function ParticipantList() {
                     alignItems: 'center',
                     padding: '12px',
                     borderRadius: '6px',
-                    border: '1px solid var(--lk-border)'
+                    border: '1px solid var(--lk-border)',
+                    scrollBehavior: 'smooth'
                   }}
                 > 
                   <div style={{ display: 'flex', gap: '4px', marginBottom: '.5rem' }}>
@@ -433,23 +446,39 @@ export function ParticipantList() {
                     }}>
                       {`${participant.identity.split('__')[0]} (${role})`}
                     </span>
+                    <button
+                          disabled={true}
+                          style={{
+                            background: 'var(--lk-bg2)',
+                            color: 'var(--lk-text)',
+                            border: '1px solid var(--lk-border)',
+                            borderRadius: '4px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            minWidth: '36px',
+                            visibility: (handVisible && (participantIdentityHand === participant.identity))? "visible" : "hidden"
+                          }}
+                        >
+                          <FaHandPaper color='yellow' size="16"/>
+                        </button>
                   </div>
 
                   {
-                    isHost ?
+                    (isHost || isCoHost) ?
                     <div style={{ display: 'flex', gap: '8px' }}>
                         <button
                           onClick={() => toggleParticipantAudio(participant as RemoteParticipant)}
-                          disabled={!isHost || isLocal || isProcessing}
-                          title={isHost ? (isMuted ? 'Unmute participant' : 'Mute participant') : 'Only host can control audio'}
+                          disabled={((role === "host") || isLocal || isProcessing)}
+                          title={(isMuted ? 'Unmute participant' : 'Mute participant')}
                           style={{
                             padding: '8px',
                             background: !isMuted ? 'var(--lk-bg2)' : 'var(--lk-danger)',
                             color: 'var(--lk-text)',
                             border: '1px solid var(--lk-border)',
                             borderRadius: '4px',
-                            cursor: isHost && !isLocal && !isProcessing ? 'pointer' : 'not-allowed',
-                            opacity: isHost && !isLocal && !isProcessing ? 1 : 0.7,
+                            cursor: ((role === "host") || isLocal || isProcessing) ? 'not-allowed' : 'pointer',
+                            opacity: ((role === "host") || isLocal || isProcessing) ? 0.7 : 1,
                             transition: 'all 0.2s ease',
                             display: 'flex',
                             alignItems: 'center',
@@ -457,20 +486,20 @@ export function ParticipantList() {
                             minWidth: '36px'
                           }}
                         >
-                          {!isMuted ? '🔊' : '🔇'}
+                          {!isMuted ? <AiFillAudio /> : <AiOutlineAudioMuted />}
                         </button>
                         <button
                           onClick={() => toggleParticipantVideo(participant as RemoteParticipant)}
-                          disabled={!isHost || isLocal || isProcessing}
-                          title={isHost ? (isVideoDisabled ? 'Start video' : 'Stop video') : 'Only host can control video'}
+                          disabled={((role === "host") || isLocal || isProcessing)}
+                          title={(isVideoDisabled ? 'Start video' : 'Stop video')}
                           style={{
                             padding: '8px',
                             background: !isVideoDisabled ? 'var(--lk-bg2)' : 'var(--lk-danger)',
                             color: 'var(--lk-text)',
                             border: '1px solid var(--lk-border)',
                             borderRadius: '4px',
-                            cursor: isHost && !isLocal && !isProcessing ? 'pointer' : 'not-allowed',
-                            opacity: isHost && !isLocal && !isProcessing ? 1 : 0.7,
+                            cursor: ((role === "host") || isLocal || isProcessing) ? 'not-allowed' : 'pointer',
+                            opacity: ((role === "host") || isLocal || isProcessing) ? 0.7 : 1,
                             transition: 'all 0.2s ease',
                             display: 'flex',
                             alignItems: 'center',
@@ -478,97 +507,100 @@ export function ParticipantList() {
                             minWidth: '36px'
                           }}
                         >
-                          {!isVideoDisabled ? '📹' : '📷'}
+                          {isVideoDisabled ? <HiVideoCameraSlash /> : <HiMiniVideoCamera />}
                         </button>
                         <button
                           onClick={() => kickParticipant(participant as RemoteParticipant)}
-                          disabled={!isHost || isLocal || isProcessing}
-                          title='Only host can kick a participant'
+                          disabled={((role === "host") || isLocal || isProcessing)}
+                          title='Kick participant'
                           style={{
                             padding: '8px',
                             background: 'var(--lk-bg2)',
                             color: 'var(--lk-text)',
                             border: '1px solid var(--lk-border)',
                             borderRadius: '4px',
-                            cursor: isHost && !isLocal && !isProcessing ? 'pointer' : 'not-allowed',
+                            cursor: ((role === "host") || isLocal || isProcessing) ? 'not-allowed' : 'pointer',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
                             minWidth: '36px'
                           }}
                         >
-                          ❌
+                          <CiCircleRemove size="24" />
                         </button>
                         <button
                           onClick={() => {
                             setdialogueParticipant(participant as RemoteParticipant)
                             setIsOpenDialogue(true)
                           }}
-                          disabled={!isHost || isLocal || isProcessing}
+                          disabled={((role === "host") || isLocal || isProcessing)}
+                          title="Rename"
                           style={{
                             padding: '8px',
                             background: 'var(--lk-bg2)',
                             color: 'var(--lk-text)',
                             border: '1px solid var(--lk-border)',
                             borderRadius: '4px',
-                            cursor: isHost && !isLocal && !isProcessing ? 'pointer' : 'not-allowed',
-                            opacity: isHost && !isLocal && !isProcessing ? 1 : 0.7,
+                            cursor: ((role === "host") || isLocal || isProcessing) ? 'not-allowed' : 'pointer',
+                            opacity: ((role === "host") || isLocal || isProcessing) ? 0.7 : 1,
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
                             minWidth: '36px'
                           }}
                         >
-                          @
+                          <MdOutlineDriveFileRenameOutline size="24" />
                         </button>
                         <button
                           onClick={() => {
                             toggleWaitingRoom(participant as RemoteParticipant)
                           }}
-                          disabled={!isHost || isLocal || isProcessing}
+                          disabled={((role === "host") || isLocal || isProcessing)}
+                          title="Put in waiting room"
                           style={{
                             padding: '8px',
                             background: 'var(--lk-bg2)',
                             color: 'var(--lk-text)',
                             border: '1px solid var(--lk-border)',
                             borderRadius: '4px',
-                            cursor: isHost && !isLocal && !isProcessing ? 'pointer' : 'not-allowed',
-                            opacity: isHost && !isLocal && !isProcessing ? 1 : 0.7,
+                            cursor: ((role === "host") || isLocal || isProcessing) ? 'not-allowed' : 'pointer',
+                            opacity: ((role === "host") || isLocal || isProcessing) ? 0.7 : 1,
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
                             minWidth: '36px'
                           }}
                         >
-                          🚪
+                          <FaDoorOpen size="24" />
                         </button>
                         <button
                           onClick={() => {
                             toggleCoHost(participant as RemoteParticipant)
                           }}
-                          disabled={!isHost || isLocal || isProcessing}
+                          disabled={((role === "host") || isLocal || isProcessing)}
+                          title="Make host"
                           style={{
                             padding: '8px',
                             background: 'var(--lk-bg2)',
                             color: 'var(--lk-text)',
                             border: '1px solid var(--lk-border)',
                             borderRadius: '4px',
-                            cursor: isHost && !isLocal && !isProcessing ? 'pointer' : 'not-allowed',
-                            opacity: isHost && !isLocal && !isProcessing ? 1 : 0.7,
+                            cursor: ((role === "host") || isLocal || isProcessing) ? 'not-allowed' : 'pointer',
+                            opacity: ((role === "host") || isLocal || isProcessing) ? 0.7 : 1,
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
                             minWidth: '36px'
                           }}
                         >
-                          ♔
+                          <MdOutlinePerson4 size="24"/>  
                         </button>
                     </div>
                     : <></>
                   }
-                </div>
+                  </div>
               );
-            })}
+            })}            
           </div>
         </div>
       )}

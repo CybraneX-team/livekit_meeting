@@ -1,5 +1,6 @@
 import { useRoomContext, useLocalParticipant } from '@livekit/components-react';
 import { useState, useEffect, useRef } from 'react';
+import { ParticipantEvent, RoomEvent, Room } from 'livekit-client';
 
 export function RecordButton() {
   const room = useRoomContext();
@@ -11,25 +12,26 @@ export function RecordButton() {
   const recordedChunksRef = useRef<Blob[]>([]);
 
   useEffect(() => {
-    const id = setInterval(() => {
-      const checkHostStatus = () => {
-        if (room.state === "connected") {
-          try {
-            const metadata = localParticipant.metadata ? JSON.parse(localParticipant.metadata) : {};
-            setIsHost(metadata.role === 'host' || metadata.role === 'co-host');
-            clearInterval(id);
-          } catch {
-            setIsHost(false);
-          }
+    const handleVisibility = () => {
+      console.log(room.state)
+      if(room.state === "connected") {
+        try {
+          const metadata = localParticipant.metadata ? JSON.parse(localParticipant.metadata) : {};
+          setIsHost(metadata.role === 'host' || metadata.role === 'co-host');
+        } catch {
+          setIsHost(false);
         }
-      };
-      checkHostStatus();
-    }, 3000)
+      }
+    }
+
+    room.on(ParticipantEvent.ParticipantMetadataChanged, handleVisibility);
+    room.on(RoomEvent.ConnectionStateChanged, handleVisibility);
 
     return () => {
-      clearInterval(id)
-    }
-  }, []);
+      room.off(ParticipantEvent.ParticipantMetadataChanged, handleVisibility);
+      room.off(RoomEvent.ConnectionStateChanged, handleVisibility);
+    };
+  }, [room])
 
   const startRecording = async () => {
     try {
@@ -120,7 +122,7 @@ export function RecordButton() {
         borderRadius: '4px',
         cursor: 'pointer',
         boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
-        zIndex: 1000,
+        zIndex: 999,
         display: 'flex',
         alignItems: 'center',
         gap: '8px'

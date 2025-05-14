@@ -1,16 +1,27 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useLocalParticipant, useRoomContext } from '@livekit/components-react';
+import { FaHandPaper } from "react-icons/fa";
 
 export const RaiseHandButton = () => {
   const room = useRoomContext();
   const { localParticipant } = useLocalParticipant();
+  const [handState, setHandState] = useState('lower');
 
-  const toggleRaiseHand = async () => {
-    const data = {
-      type: 'notify',
-      action: 'hand',
-      name: localParticipant.name
-    };
+  const toggleHand = async () => {
+    let data = {
+      type: "notify",
+      action: "",
+      name: localParticipant.name,
+      identity: localParticipant.identity
+    }
+
+    if(handState === "lower") {
+      data.action = "raise"
+      setHandState("raise")
+    } else {
+      data.action = "lower"
+      setHandState("lower")
+    }
     
     await room.localParticipant.publishData(
       new TextEncoder().encode(JSON.stringify(data)),
@@ -20,8 +31,7 @@ export const RaiseHandButton = () => {
 
   return (
     <button
-      onClick={toggleRaiseHand}
-      className={`fixed bottom-24 right-4 z-50 p-3 rounded-full shadow-lg transition-all duration-200 bg-gray-700 hover:bg-gray-600`}
+      onClick={toggleHand}
       style={{
         position: 'fixed',
         top: '80px',
@@ -31,22 +41,13 @@ export const RaiseHandButton = () => {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
+        backgroundColor: 'var(--lk-bg2)',
+        boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+        cursor: 'pointer',
+        border: (handState === "lower") ? "none" : "white 2px solid"
       }}
     >
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        fill="none"
-        viewBox="0 0 24 24"
-        strokeWidth={1.5}
-        stroke="currentColor"
-        className={`w-6 h-6 text-gray-200`}
-      >
-        <path
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 01.865-.501 48.172 48.172 0 003.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z"
-        />
-      </svg>
+      <FaHandPaper />
     </button>
   );
 }; 
