@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useLocalParticipant, useRoomContext } from '@livekit/components-react';
+import { useLocalParticipant, useRoomContext } from '../custom_livekit_react';
 import { FaHandPaper } from "react-icons/fa";
 
 export const RaiseHandButton = () => {

@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { PageClientImpl } from './PageClientImpl';
 import { isVideoCodec } from '@/lib/types';
+import { MyProvider } from '@/state_mangement/MyProvider';
 
 export default async function Page({
   params,
@@ -25,12 +26,14 @@ export default async function Page({
 
   return (
     <>
-      <PageClientImpl
-        roomName={_params.roomName}
-        region={_searchParams.region}
-        hq={hq}
-        codec={codec}
-      />
+      <MyProvider>
+        <PageClientImpl
+          roomName={_params.roomName}
+          region={_searchParams.region}
+          hq={hq}
+          codec={codec}
+        />
+      </MyProvider>
     </>
   );
 }

@@ -13,7 +13,7 @@ import {
   PreJoin,
   RoomContext,
   VideoConference,
-} from '@livekit/components-react';
+} from '../../../custom_livekit_react';
 import {
   ExternalE2EEKeyProvider,
   RoomOptions,
@@ -30,6 +30,7 @@ import { useRouter } from 'next/navigation';
 import React, { useState } from 'react';
 import { RaiseHandButton } from '@/components/RaiseHandButton';
 import Notification from '@/components/Notification';
+import { MassControl } from '@/components/MassControl';
 
 const CONN_DETAILS_ENDPOINT = process.env.NEXT_PUBLIC_CONN_DETAILS_ENDPOINT ?? '/api/connection-details';
 const SHOW_SETTINGS_MENU = process.env.NEXT_PUBLIC_SHOW_SETTINGS_MENU == 'true';
@@ -256,10 +257,11 @@ function VideoConferenceComponent(props: {
   return (
     <div className="lk-room-container" style={{ position: 'relative', height: '100vh' }}>
       <RoomContext.Provider value={room}>
-        <VideoConference
-          chatMessageFormatter={formatChatMessageLinks}
-          SettingsComponent={SHOW_SETTINGS_MENU ? SettingsMenu : undefined}
-        />
+          <VideoConference
+            chatMessageFormatter={formatChatMessageLinks}
+            SettingsComponent={SHOW_SETTINGS_MENU ? SettingsMenu : undefined}
+          />
+        <MassControl/>
         <ParticipantList handVisible={handVisible} participantIdentityHand={participantIdentityHand} />
         <RecordButton />
         <DebugMode />

@@ -7,10 +7,10 @@ import {
   TrackToggle,
   useRoomContext,
   useIsRecording,
-} from '@livekit/components-react';
+} from '../custom_livekit_react'
 import styles from '../styles/SettingsMenu.module.css';
 import { CameraSettings } from './CameraSettings';
-import { MicrophoneSettings } from './MicrophoneSettings';
+// import { MicrophoneSettings } from './MicrophoneSettings';
 /**
  * @alpha
  */
@@ -142,7 +142,7 @@ export function SettingsMenu(props: SettingsMenuProps) {
               <div>
                 <h3 style={{ margin: '0 0 12px 0', fontSize: '16px' }}>Microphone</h3>
                 <section>
-                  <MicrophoneSettings />
+                  {/* <MicrophoneSettings /> */}
                 </section>
               </div>
             )}

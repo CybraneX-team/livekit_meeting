@@ -1,5 +1,5 @@
-import { useParticipants, useRoomContext, useLocalParticipant } from '@livekit/components-react';
-import { useState, useEffect } from 'react';
+import { useParticipants, useRoomContext, useLocalParticipant } from '../custom_livekit_react';
+import { useState, useEffect, useContext } from 'react';
 import { Track, RemoteParticipant, ParticipantEvent, DataPacket_Kind, Participant } from 'livekit-client';
 import { CiCircleRemove } from "react-icons/ci"; 
 import { MdOutlineDriveFileRenameOutline } from "react-icons/md";
@@ -10,6 +10,7 @@ import { HiVideoCameraSlash } from "react-icons/hi2";
 import { AiFillAudio } from "react-icons/ai";
 import { AiOutlineAudioMuted } from "react-icons/ai";
 import { FaHandPaper } from "react-icons/fa";
+import { MyGlobalContext } from '@/state_mangement/MyGlobalContext';
 
 const CONN_DETAILS_ENDPOINT = '/api/participant-control';
 
@@ -19,9 +20,9 @@ interface ParticipantListProps {
 }
 
 export function ParticipantList({ handVisible, participantIdentityHand }: ParticipantListProps) {
+  const { state } = useContext(MyGlobalContext)
   const room = useRoomContext();
   const participants = useParticipants();
-  const [isListVisible, setIsListVisible] = useState(false);
   const { localParticipant } = useLocalParticipant();
   const [isHost, setIsHost] = useState(false);
   const [isCoHost, setIsCoHost] = useState(false);
@@ -82,10 +83,6 @@ export function ParticipantList({ handVisible, participantIdentityHand }: Partic
       room.off('dataReceived', handleData);
     };
   }, [room.state]);
-
-  const toggleList = () => {
-    setIsListVisible(!isListVisible);
-  };
 
   const toggleParticipantAudio = async (participant: RemoteParticipant) => {
     if (isProcessing) {
@@ -386,41 +383,19 @@ export function ParticipantList({ handVisible, participantIdentityHand }: Partic
     <>
       <RenameDialogue isOpen={isOpenDialogue} setIsOpen={setIsOpenDialogue}/>
 
-      <button
-        onClick={(toggleList)}
-        style={{
-          position: 'fixed',
-          top: '20px',
-          left: '20px',
-          padding: '8px 16px',
-          background: 'var(--lk-bg2)',
-          color: 'var(--lk-text)',
-          border: '1px solid var(--lk-border)',
-          borderRadius: '4px',
-          cursor: 'pointer',
-          boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
-          zIndex: 1001,
-          width: 'calc(100vw - 40px)',
-        }}
-      >
-        {isListVisible ? 'Hide Participants' : 'Show Participants'} ({participants.length})
-      </button>
-      
-      {isListVisible && (
+      {state.participantListVisible && (
         <div
           style={{
             position: 'fixed',
-            top: '60px',
-            left: '20px',
+            top: '8px',
+            right: '8px',
             background: 'var(--lk-bg2)',
             border: '1px solid var(--lk-border)',
-            borderRadius: '4px',
+            borderRadius: '8px',
             padding: '16px',
-            maxHeight: 'calc(100vh - 100px)',
             overflowY: 'auto',
             zIndex: 1000,
             boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
-            width: 'calc(100vw - 40px)',
           }}
         >
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>

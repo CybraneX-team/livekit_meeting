@@ -1,4 +1,4 @@
-import { useRoomContext, useLocalParticipant } from '@livekit/components-react';
+import { useRoomContext, useLocalParticipant } from '../custom_livekit_react';
 import { useState, useEffect, useRef } from 'react';
 import { ParticipantEvent, RoomEvent, Room } from 'livekit-client';
 

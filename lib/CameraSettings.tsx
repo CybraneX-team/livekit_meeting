@@ -4,7 +4,7 @@ import {
   TrackToggle,
   useLocalParticipant,
   VideoTrack,
-} from '@livekit/components-react';
+} from '../custom_livekit_react';
 import { BackgroundBlur, VirtualBackground } from '@livekit/track-processors';
 import { isLocalTrack, LocalTrackPublication, Track } from 'livekit-client';
 import Desk from '../public/background-images/samantha-gades-BlIhVfXbi9s-unsplash.jpg';
