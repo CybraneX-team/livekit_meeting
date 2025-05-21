@@ -148,6 +148,38 @@ export async function POST(req: Request) {
           canPublishData: true
         };
         await roomService.updateParticipant(roomName, participantIdentity, metadata, permissions);
+      } else if (action === 'disable-publishing') {
+        console.log('Disabling publishing for participant:', participantIdentity);
+        const permissions = {
+          canPublish: false,
+          canSubscribe: true,
+          canPublishData: true
+        };
+        await roomService.updateParticipant(roomName, participantIdentity, undefined, permissions);
+      } else if (action === 'enable-publishing') {
+        console.log('Enabling publishing for participant:', participantIdentity);
+        const permissions = {
+          canPublish: true,
+          canSubscribe: true,
+          canPublishData: true
+        };
+        await roomService.updateParticipant(roomName, participantIdentity, undefined, permissions);
+      } else if (action === 'mass-disable-publishing' || action === 'mass-enable-publishing') {
+        console.log(`${action} for all participants in room:`, roomName);
+        const participants = await roomService.listParticipants(roomName);
+        const canPublish = action === 'mass-enable-publishing';
+        
+        // Update all participants in parallel
+        await Promise.all(participants.map(async (participant) => {
+          if(participant.identity === participantIdentity) return;
+
+          const permissions = {
+            canPublish,
+            canSubscribe: true,
+            canPublishData: true
+          };
+          await roomService.updateParticipant(roomName, participant.identity, undefined, permissions);
+        }));
       } else {
         console.error('Invalid action:', action);
         return NextResponse.json(

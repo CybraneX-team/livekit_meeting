@@ -2,26 +2,26 @@
 
 import React, { useReducer } from 'react';
 import { MyGlobalContext } from './MyGlobalContext';
+import { MyGlobalAction, MyGlobalState } from './types';
 
-
-// Define actions
-const initialState = { 
-  participantListVisible: false ,
-  massControlVisible: false
+const initialState: MyGlobalState = {
+  participantListVisible: false,
+  massControlVisible: false,
 };
 
-function myReducer(state, action) {
+function myReducer(state: MyGlobalState, action: MyGlobalAction): MyGlobalState {
   switch (action.type) {
     case 'participantListVisibleToggle':
-      return { participantListVisible: !(state.participantListVisible) };
+      return { ...state, participantListVisible: !state.participantListVisible };
     case 'massControlVisibleToggle':
-      return { massControlVisible: !(state.massControlVisible) };
+      return { ...state, massControlVisible: !state.massControlVisible };
     default:
-      throw new Error(`Unknown action: ${action.type}`);
+      const _exhaustiveCheck: never = action;
+      return state;  
   }
 }
 
-export function MyProvider({ children }) {
+export function MyProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(myReducer, initialState);
 
   return (

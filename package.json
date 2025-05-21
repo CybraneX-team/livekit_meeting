@@ -13,6 +13,7 @@
     "@livekit/components-core": "0.12.5",
     "@livekit/components-styles": "1.1.5",
     "@livekit/krisp-noise-filter": "0.2.16",
+    "@livekit/protocol": "^1.23.0",
     "@livekit/track-processors": "^0.5.4",
     "clsx": "^2.1.1",
     "framer-motion": "^12.11.0",

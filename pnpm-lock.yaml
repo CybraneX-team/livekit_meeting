@@ -20,6 +20,9 @@ importers:
       '@livekit/krisp-noise-filter':
         specifier: 0.2.16
         version: 0.2.16(livekit-client@2.11.4)
+      '@livekit/protocol':
+        specifier: ^1.23.0
+        version: 1.36.1
       '@livekit/track-processors':
         specifier: ^0.5.4
         version: 0.5.4(livekit-client@2.11.4)

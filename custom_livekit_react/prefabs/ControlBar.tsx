@@ -1,4 +1,4 @@
-import { Track } from 'livekit-client';
+import { RemoteParticipant, Track } from 'livekit-client';
 import * as React from 'react';
 import { MediaDeviceMenu } from './MediaDeviceMenu';
 import { DisconnectButton } from '../components/controls/DisconnectButton';
@@ -7,7 +7,7 @@ import { ChatIcon, GearIcon, LeaveIcon } from '../assets/icons';
 import { ChatToggle } from '../components/controls/ChatToggle';
 import { useLocalParticipant, useLocalParticipantPermissions, usePersistentUserChoices } from '../hooks';
 import { useMediaQuery } from '../hooks/internal';
-import { useMaybeLayoutContext } from '../context';
+import { useMaybeLayoutContext, useRoomContext } from '../context';
 import { supportsScreenSharing } from '@livekit/components-core';
 import { mergeProps } from '../utils';
 import { StartMediaButton } from '../components/controls/StartMediaButton';
@@ -76,8 +76,9 @@ export function ControlBar({
 
   const defaultVariation = isTooLittleSpace ? 'minimal' : 'verbose';
   variation ??= defaultVariation;
+  const room = useRoomContext();
 
-  const visibleControls = { leave: true, participant: true, massControl: true,  ...controls };
+  const visibleControls = { leave: true, participant: true,  ...controls };
 
   const localPermissions = useLocalParticipantPermissions();
 
@@ -92,6 +93,53 @@ export function ControlBar({
     visibleControls.screenShare ??= localPermissions.canPublish;
     visibleControls.chat ??= localPermissions.canPublishData && controls?.chat;  
   }
+
+  const [isHost, setIsHost] = React.useState(false);
+
+  React.useEffect(() => {
+    const handleHost = () => {
+      try {
+        const parsed = JSON.parse(room.localParticipant.metadata ?? '{}') as { role?: string };
+        const role = parsed?.role;
+
+        setIsHost(role === 'host' || role === 'co-host')
+      } catch (error) {
+        console.error('Invalid metadata JSON:', room.localParticipant.metadata, error);
+      }
+    }
+
+    room.on("connected", handleHost)
+
+    return () => {
+      room.off("connected", handleHost)
+    }
+  }, [room])
+
+  React.useEffect(() => {
+    if (!room) return;
+
+    const handleMetadataChange = () => {
+      const metadata = room.localParticipant.metadata
+
+      try {
+        const parsed = JSON.parse(metadata ?? '{}') as { role?: string };
+        const role = parsed?.role;
+
+        setIsHost(role === 'host' || role === 'co-host')
+      } catch (error) {
+        console.error('Invalid metadata JSON:', metadata, error);
+      }
+    };
+
+    // Local participant
+    room.on('participantMetadataChanged', handleMetadataChange);
+
+    // Cleanup to prevent memory leaks
+    return () => {
+      room.off('participantMetadataChanged', handleMetadataChange);
+    };
+  }, [room]);
+
 
   const showIcon = React.useMemo(
     () => variation === 'minimal' || variation === 'verbose',
@@ -137,8 +185,8 @@ export function ControlBar({
   return (
     <div 
       style={{
-        paddingLeft: "200px",
-        overflowX: "auto"
+        overflowX: "auto",
+        justifyContent: "start"
       }}
 
       {...htmlProps}
@@ -218,12 +266,18 @@ export function ControlBar({
           {showText && 'Participant'}
         </ParticipantButton>
       )}
-      {visibleControls.massControl && (
+      {isHost && (
         <MassControlButton>
           {showIcon && <IoPeople />}
           {showText && 'Mass Control'}
         </MassControlButton>
       )}
+      {/* {isHost && (
+        <Button>
+          {showIcon && <IoPeople />}
+          {showText && 'Recording'}
+        </MassControlButton>
+      )} */}
       <StartMediaButton />
     </div>
   );

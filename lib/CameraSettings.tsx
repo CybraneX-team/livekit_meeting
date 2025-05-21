@@ -67,6 +67,7 @@ export function CameraSettings() {
           objectPosition: 'right',
           transform: 'scaleX(-1)',
         }}
+        // @ts-ignore
         trackRef={camTrackRef}
       />
 
