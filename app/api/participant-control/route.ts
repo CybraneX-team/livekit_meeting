@@ -1,5 +1,5 @@
 import { RoomServiceClient } from 'livekit-server-sdk';
-import { Track } from 'livekit-client';
+import { Participant, Track } from 'livekit-client';
 import { NextResponse } from 'next/server';
 import { kickUser } from '@/lib/blackList';
 
@@ -171,6 +171,11 @@ export async function POST(req: Request) {
         
         // Update all participants in parallel
         await Promise.all(participants.map(async (participant) => {
+          console.log(participant.metadata)
+
+          const { role } = JSON.parse(participant.metadata);
+
+          if(role === "host" || role === "co-host") return;
           if(participant.identity === participantIdentity) return;
 
           const permissions = {
@@ -179,6 +184,36 @@ export async function POST(req: Request) {
             canPublishData: true
           };
           await roomService.updateParticipant(roomName, participant.identity, undefined, permissions);
+        }));
+      } else if (action === 'mass-mute-audio' || action === 'mass-unmute-audio') {
+        console.log(`${action} for all participants in room:`, roomName);
+        const participants = await roomService.listParticipants(roomName);
+        const shouldMute = action === 'mass-mute-audio';
+        
+        // Update all participants in parallel
+        await Promise.all(participants.map(async (participant) => {
+          const { role } = JSON.parse(participant.metadata || '{}');
+          
+          if(role === "host" || role === "co-host") return;
+          if(participant.identity === participantIdentity) return;
+
+          console.log(participant.tracks);
+          console.log(Track.Source.Microphone)
+          await roomService.mutePublishedTrack(roomName, participant.identity, (participant?.tracks.find((t) => t.source === 2))?.sid + "", shouldMute)
+        }));
+      } else if (action === 'mass-mute-video' || action === 'mass-unmute-video') {
+        console.log(`${action} for all participants in room:`, roomName);
+        const participants = await roomService.listParticipants(roomName);
+        const shouldMute = action === 'mass-mute-video';
+        
+        // Update all participants in parallel
+        await Promise.all(participants.map(async (participant) => {
+          const { role } = JSON.parse(participant.metadata || '{}');
+          
+          if(role === "host" || role === "co-host") return;
+          if(participant.identity === participantIdentity) return;
+          
+          await roomService.mutePublishedTrack(roomName, participant.identity, (participant?.tracks.find((t) => t.source === 2))?.sid + "", shouldMute)
         }));
       } else {
         console.error('Invalid action:', action);
