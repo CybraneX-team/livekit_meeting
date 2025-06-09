@@ -282,7 +282,7 @@ const EnhancedDashboard = () => {
           <span>Home</span>
         </motion.div>
         
-        <motion.div 
+        {/* <motion.div 
           className={`sidebar-item ${activeSection === 'upcoming' ? 'active' : ''}`}
           onClick={() => handleNavigation('upcoming')}
           whileHover={{ x: 5 }}
@@ -290,9 +290,9 @@ const EnhancedDashboard = () => {
         >
           <FaCalendarAlt size={24} className="sidebar-icon" />
           <span>Upcoming</span>
-        </motion.div>
+        </motion.div> */}
         
-        <motion.div 
+        {/* <motion.div 
           className={`sidebar-item ${activeSection === 'previous' ? 'active' : ''}`}
           onClick={() => handleNavigation('previous')}
           whileHover={{ x: 5 }}
@@ -300,9 +300,9 @@ const EnhancedDashboard = () => {
         >
           <FaHistory size={24} className="sidebar-icon" />
           <span>Previous</span>
-        </motion.div>
+        </motion.div> */}
         
-        <motion.div 
+        {/* <motion.div 
           className={`sidebar-item ${activeSection === 'recordings' ? 'active' : ''}`}
           onClick={() => handleNavigation('recordings')}
           whileHover={{ x: 5 }}
@@ -310,9 +310,9 @@ const EnhancedDashboard = () => {
         >
           <FaVideo size={24} className="sidebar-icon" />
           <span>Recordings</span>
-        </motion.div>
+        </motion.div> */}
         
-        <motion.div 
+        {/* <motion.div 
           className={`sidebar-item ${activeSection === 'personal' ? 'active' : ''}`}
           onClick={() => openPersonalRoom()}
           whileHover={{ x: 5 }}
@@ -320,7 +320,7 @@ const EnhancedDashboard = () => {
         >
           <FaUserFriends size={24} className="sidebar-icon" />
           <span>Personal Room</span>
-        </motion.div>
+        </motion.div> */}
       </motion.div>
       
       {/* Main content */}
@@ -378,7 +378,7 @@ const EnhancedDashboard = () => {
               </motion.div>
               
               {/* Join Meeting card */}
-              <motion.div 
+              {/* <motion.div 
                 className="action-card purple"
                 onClick={handleJoinMeeting}
                 variants={itemVariants}
@@ -391,10 +391,10 @@ const EnhancedDashboard = () => {
                   <h3>Join Meeting</h3>
                   <p>via invitation link</p>
                 </div>
-              </motion.div>
+              </motion.div> */}
               
               {/* Schedule Meeting card */}
-              <motion.div 
+              {/* <motion.div 
                 className="action-card violet"
                 onClick={handleScheduleMeeting}
                 variants={itemVariants}
@@ -407,10 +407,10 @@ const EnhancedDashboard = () => {
                   <h3>Schedule Meeting</h3>
                   <p>Plan your meeting</p>
                 </div>
-              </motion.div>
+              </motion.div> */}
               
               {/* View Recordings card */}
-              <motion.div 
+              {/* <motion.div 
                 className="action-card yellow"
                 onClick={() => handleNavigation('recordings')}
                 variants={itemVariants}
@@ -423,9 +423,10 @@ const EnhancedDashboard = () => {
                   <h3>View Recordings</h3>
                   <p>Meeting Recordings</p>
                 </div>
-              </motion.div>
+              </motion.div> */}
             </motion.div>
-          )}
+          )
+        }
           
           {/* Upcoming Meetings Section */}
           {activeSection === 'upcoming' && (

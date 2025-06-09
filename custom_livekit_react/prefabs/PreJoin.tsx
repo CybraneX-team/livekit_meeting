@@ -419,6 +419,15 @@ export function PreJoin({
         >
           {joinLabel}
         </button>
+        <button
+          className="lk-button lk-copy-url-button"
+          type="button"
+          onClick={() => {
+            navigator.clipboard.writeText((window.location.href).split("$")[0]);
+          }}
+        >
+          Copy URL
+        </button>
       </form>
 
       {debug && (

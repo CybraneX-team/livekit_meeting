@@ -16,6 +16,7 @@ import { IoMdPerson } from "react-icons/io";
 import { ParticipantButton } from '../components/controls/ParticipantButton';
 import { IoPeople } from "react-icons/io5";
 import { MassControlButton } from '../components/controls/MassControlButton';
+import { CiLink } from "react-icons/ci";
 
 /** @public */
 export type ControlBarControls = {
@@ -306,6 +307,17 @@ export function ControlBar({
           {showIcon && <IoPeople />}
           {showText && 'Mass Control'}
         </MassControlButton>
+      )}
+      {isHost && (
+        <button
+          type='button'
+          className='lk-button'
+          onClick={() => {
+            navigator.clipboard.writeText((window.location.href).split("$")[0]);
+          }}
+        >
+          <CiLink /> Meet Link
+        </button>
       )}
       {/* {isHost && (
         <Button>
