@@ -1,23 +1,16 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import React, { useEffect } from 'react';
+import React from 'react';
 import styles from '../styles/Home.module.css';
 
 export default function Page() {
-  const router = useRouter();
-
-  // Redirect to dashboard page
-  useEffect(() => {
-    router.push('/dashboard');
-  }, [router]);
-
   return (
     <main className={styles.main} data-lk-theme="default">
       <div className="header">
         <h2>
-          Redirecting to dashboard...
-        </h2> 
+          Thank you for attending the meeting!
+        </h2>
       </div>
     </main>
   );

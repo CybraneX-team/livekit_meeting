@@ -11,6 +11,19 @@ const LIVEKIT_URL = process.env.LIVEKIT_URL;
 const COOKIE_KEY = 'participantToken';
 const jwtExpiryHours = 12;
 
+async function roomExists(roomName: String) {
+  const roomService = new RoomServiceClient(LIVEKIT_URL + "", API_KEY, API_SECRET);
+
+  try {
+    const rooms = await roomService.listRooms();
+    const exists = rooms.some(room => room.name === roomName);
+    return exists;
+  } catch (error) {
+    console.error('Failed to list rooms:', error);
+    return false;
+  }
+}
+
 function decodeParticipantToken(token: string) {
   try {
     const decoded = jwtDecode(token);
@@ -22,6 +35,7 @@ function decodeParticipantToken(token: string) {
 
 export async function GET(request: NextRequest) {
   try {
+    const where = request.nextUrl.searchParams.get('where');
     const roomName = request.nextUrl.searchParams.get('roomName');
     const participantName = request.nextUrl.searchParams.get('participantName');
     const metadata = request.nextUrl.searchParams.get('metadata') ?? '';
@@ -29,6 +43,10 @@ export async function GET(request: NextRequest) {
     const livekitServerUrl = region ? getLiveKitURL(region) : LIVEKIT_URL;
 
     let currentParticipantToken = request.cookies.get(COOKIE_KEY)?.value;
+
+    if(where !== "dashboard" && !(await roomExists(roomName + ""))) {
+      return new NextResponse('Meeting does not exist', { status: 400 });
+    }
 
     if (livekitServerUrl === undefined) {
       throw new Error('Invalid region');
@@ -50,8 +68,6 @@ export async function GET(request: NextRequest) {
         currentParticipantToken = undefined;
       }
     }
-
-    console.log(decodedToken)
 
     if(isKicked(decodedToken?.sub + "")) {
       return new NextResponse(JSON.stringify({}), {

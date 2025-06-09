@@ -141,7 +141,7 @@ export function MassControl() {
         >
           <div style={{ marginBottom: '16px' }}>
             <h3 style={{ marginBottom: '8px' }}>Mass Controls</h3>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '16px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '16px', flexDirection: 'column' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <span style={{ fontSize: '0.9em', color: 'var(--lk-text-secondary)' }}>Publishing</span>
                 <div

@@ -1,6 +1,6 @@
-import { useParticipants, useRoomContext, useLocalParticipant } from '../custom_livekit_react';
-import { useState, useEffect, useContext } from 'react';
-import { Track, RemoteParticipant, ParticipantEvent, DataPacket_Kind, Participant } from 'livekit-client';
+import { useParticipants, useRoomContext, useLocalParticipant } from '../../custom_livekit_react';
+import { useState, useEffect, useContext, createContext, SetStateAction, Dispatch } from 'react';
+import { Track, RemoteParticipant, ParticipantEvent, DataPacket_Kind, Participant, RoomEvent, LocalParticipant, Room } from 'livekit-client';
 import { CiCircleRemove } from "react-icons/ci"; 
 import { MdOutlineDriveFileRenameOutline } from "react-icons/md";
 import { FaDoorOpen } from "react-icons/fa";
@@ -11,6 +11,7 @@ import { AiFillAudio } from "react-icons/ai";
 import { AiOutlineAudioMuted } from "react-icons/ai";
 import { FaHandPaper } from "react-icons/fa";
 import { MyGlobalContext } from '@/state_mangement/MyGlobalContext';
+import { MultiTypePublishingToggle } from './components/MultiTypePublishingToggle';
 
 const CONN_DETAILS_ENDPOINT = '/api/participant-control';
 
@@ -18,6 +19,22 @@ interface ParticipantListProps {
   handVisible: boolean;
   participantIdentityHand: string;
 }
+
+interface ComponentContextType {
+  room: any;
+  CONN_DETAILS_ENDPOINT: string;
+  isProcessing: boolean;
+  setIsProcessing: Dispatch<SetStateAction<boolean>>;
+}
+
+const defaultContextValue: ComponentContextType = {
+  room: null,
+  CONN_DETAILS_ENDPOINT: "",
+  isProcessing: false,
+  setIsProcessing: () => {},
+};
+
+export const ParentContext = createContext<ComponentContextType>(defaultContextValue);
 
 export function ParticipantList({ handVisible, participantIdentityHand }: ParticipantListProps) {
   const { state } = useContext(MyGlobalContext)
@@ -29,6 +46,13 @@ export function ParticipantList({ handVisible, participantIdentityHand }: Partic
   const [isProcessing, setIsProcessing] = useState(false);
   const [isOpenDialogue, setIsOpenDialogue] = useState<boolean>(false);
   const [dialogueParticipant, setdialogueParticipant] = useState<RemoteParticipant>();
+
+  const contextValue = {
+    room,
+    CONN_DETAILS_ENDPOINT,
+    isProcessing,
+    setIsProcessing
+  }
 
   useEffect(() => {
     if(room.state === "connected") {
@@ -380,7 +404,7 @@ export function ParticipantList({ handVisible, participantIdentityHand }: Partic
   }
 
   return (
-    <>
+    <ParentContext.Provider value={contextValue}>
       <RenameDialogue isOpen={isOpenDialogue} setIsOpen={setIsOpenDialogue}/>
 
       {state.participantListVisible && (
@@ -396,6 +420,7 @@ export function ParticipantList({ handVisible, participantIdentityHand }: Partic
             overflowY: 'auto',
             zIndex: 1000,
             boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+            overflow: 'scroll'
           }}
         >
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -447,48 +472,8 @@ export function ParticipantList({ handVisible, participantIdentityHand }: Partic
                   {
                     (isHost || isCoHost) ?
                     <div style={{ display: 'flex', gap: '8px' }}>
-                        <button
-                          onClick={() => toggleParticipantAudio(participant as RemoteParticipant)}
-                          disabled={((role === "host") || isLocal || isProcessing)}
-                          title={(isMuted ? 'Unmute participant' : 'Mute participant')}
-                          style={{
-                            padding: '8px',
-                            background: !isMuted ? 'var(--lk-bg2)' : 'var(--lk-danger)',
-                            color: 'var(--lk-text)',
-                            border: '1px solid var(--lk-border)',
-                            borderRadius: '4px',
-                            cursor: ((role === "host") || isLocal || isProcessing) ? 'not-allowed' : 'pointer',
-                            opacity: ((role === "host") || isLocal || isProcessing) ? 0.7 : 1,
-                            transition: 'all 0.2s ease',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            minWidth: '36px'
-                          }}
-                        >
-                          {!isMuted ? <AiFillAudio /> : <AiOutlineAudioMuted />}
-                        </button>
-                        <button
-                          onClick={() => toggleParticipantVideo(participant as RemoteParticipant)}
-                          disabled={((role === "host") || isLocal || isProcessing)}
-                          title={(isVideoDisabled ? 'Start video' : 'Stop video')}
-                          style={{
-                            padding: '8px',
-                            background: !isVideoDisabled ? 'var(--lk-bg2)' : 'var(--lk-danger)',
-                            color: 'var(--lk-text)',
-                            border: '1px solid var(--lk-border)',
-                            borderRadius: '4px',
-                            cursor: ((role === "host") || isLocal || isProcessing) ? 'not-allowed' : 'pointer',
-                            opacity: ((role === "host") || isLocal || isProcessing) ? 0.7 : 1,
-                            transition: 'all 0.2s ease',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            minWidth: '36px'
-                          }}
-                        >
-                          {isVideoDisabled ? <HiVideoCameraSlash /> : <HiMiniVideoCamera />}
-                        </button>
+                        <MultiTypePublishingToggle participant={participant} type='audio'/>
+                        <MultiTypePublishingToggle participant={participant} type='video'/>
                         <button
                           onClick={() => kickParticipant(participant as RemoteParticipant)}
                           disabled={((role === "host") || isLocal || isProcessing)}
@@ -584,6 +569,6 @@ export function ParticipantList({ handVisible, participantIdentityHand }: Partic
           </div>
         </div>
       )}
-    </>
+    </ParentContext.Provider>
   );
 }

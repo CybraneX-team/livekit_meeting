@@ -1,4 +1,4 @@
-import { RemoteParticipant, Track } from 'livekit-client';
+import { RemoteParticipant, RpcInvocationData, Track } from 'livekit-client';
 import * as React from 'react';
 import { MediaDeviceMenu } from './MediaDeviceMenu';
 import { DisconnectButton } from '../components/controls/DisconnectButton';
@@ -78,21 +78,56 @@ export function ControlBar({
   variation ??= defaultVariation;
   const room = useRoomContext();
 
-  const visibleControls = { leave: true, participant: true,  ...controls };
+  
+  const [visibleControls, setVisibleControls] = React.useState({ leave: true, participant: true,  ...controls });
 
   const localPermissions = useLocalParticipantPermissions();
 
-  if (!localPermissions) {
-    visibleControls.camera = false;
-    visibleControls.chat = false;
-    visibleControls.microphone = false;
-    visibleControls.screenShare = false;
-  } else {
-    visibleControls.camera ??= localPermissions.canPublish;
-    visibleControls.microphone ??= localPermissions.canPublish;
-    visibleControls.screenShare ??= localPermissions.canPublish;
-    visibleControls.chat ??= localPermissions.canPublishData && controls?.chat;  
+  React.useEffect(() => {
+    if (!localPermissions) {
+      setVisibleControls({
+        ...visibleControls,
+        camera: false,
+        chat: false,
+        microphone: false,
+        screenShare: false
+      })
+    } else {
+      setVisibleControls({
+        ...visibleControls,
+        camera: localPermissions.canPublish,
+        chat: localPermissions.canPublish,
+        microphone: localPermissions.canPublish,
+        screenShare: localPermissions.canPublishData && controls?.chat
+      })
+   }
+  }, [localPermissions])
+
+  React.useEffect(() => {
+    room.registerRpcMethod(
+      'set-publishing',
+      async (data: RpcInvocationData) => {
+        const parse = JSON.parse(data.payload);
+
+        setVisibleControls({
+          ...visibleControls,
+          ...parse
+        });
+
+        if("camera" in parse) {
+          room.localParticipant.setCameraEnabled(parse.camera)
+        } else if("microphone" in parse) {
+          room.localParticipant.setMicrophoneEnabled(parse.microphone)
+        }
+
+        return "200"
+      }
+  );
+
+  return () => {
+    room.unregisterRpcMethod("set-publishing")
   }
+  }, [room])
 
   const [isHost, setIsHost] = React.useState(false);
 

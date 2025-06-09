@@ -24,14 +24,17 @@ export default async function Page({
       : 'vp9';
   const hq = _searchParams.hq === 'true' ? true : false;
 
+  console.log((_params.roomName).split('%24')[0])
+
   return (
     <>
       <MyProvider>
         <PageClientImpl
-          roomName={_params.roomName}
+          roomName={(_params.roomName).split('%24')[0]}
           region={_searchParams.region}
           hq={hq}
           codec={codec}
+          where={(_params.roomName).split('%24')[1]}
         />
       </MyProvider>
     </>

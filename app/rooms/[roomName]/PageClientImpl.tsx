@@ -5,7 +5,7 @@ import { DebugMode } from '@/lib/Debug';
 import { RecordingIndicator } from '@/lib/RecordingIndicator';
 import { SettingsMenu } from '@/lib/SettingsMenu';
 import { ConnectionDetails } from '@/lib/types';
-import { ParticipantList } from '@/components/ParticipantList';
+import { ParticipantList } from '@/components/participant list/ParticipantList';
 import { RecordButton } from '@/components/RecordButton';
 import {
   formatChatMessageLinks,
@@ -37,6 +37,7 @@ const SHOW_SETTINGS_MENU = process.env.NEXT_PUBLIC_SHOW_SETTINGS_MENU == 'true';
 
 export function PageClientImpl(props: {
   roomName: string;
+  where: string;
   region?: string;
   hq: boolean;
   codec: VideoCodec;
@@ -58,8 +59,9 @@ export function PageClientImpl(props: {
 
     const url = new URL(CONN_DETAILS_ENDPOINT, window.location.origin);
 
-    url.searchParams.append('roomName', props.roomName);
+    url.searchParams.append('roomName', (props.roomName).split('$')[0]);
     url.searchParams.append('participantName', values.username);
+    url.searchParams.append('where', props.where);
 
     if (props.region) {
       url.searchParams.append('region', props.region);

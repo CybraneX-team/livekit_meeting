@@ -165,7 +165,7 @@ const EnhancedDashboard = () => {
   const startMeeting = () => {
     const newRoomId = generateRoomId();
     setShowModal(false);
-    router.push(`/rooms/${newRoomId}`);
+    router.push(`/rooms/${newRoomId}$dashboard`);
   };
   
   // Join a meeting with link
@@ -180,7 +180,7 @@ const EnhancedDashboard = () => {
     }
     
     setShowModal(false);
-    router.push(`/rooms/${meetingId}`);
+    router.push(`/rooms/${meetingId}$dashboard`);
   };
   
   // Schedule a meeting
@@ -213,7 +213,7 @@ const EnhancedDashboard = () => {
   // Handle personal room
   const openPersonalRoom = () => {
     const personalRoomId = 'personal-' + Date.now();
-    router.push(`/rooms/${personalRoomId}`);
+    router.push(`/rooms/${personalRoomId}$dashboard`);
   };
   
   // Format date for display
@@ -482,7 +482,7 @@ const EnhancedDashboard = () => {
                       <div className="meeting-actions">
                         <motion.button 
                           className="join-button"
-                          onClick={() => router.push(`/rooms/${meeting.id}`)}
+                          onClick={() => router.push(`/rooms/${meeting.id}$dashboard`)}
                           whileHover={{ scale: 1.05 }}
                           whileTap={{ scale: 0.95 }}
                         >

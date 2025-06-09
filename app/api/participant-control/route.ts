@@ -164,6 +164,40 @@ export async function POST(req: Request) {
           canPublishData: true
         };
         await roomService.updateParticipant(roomName, participantIdentity, undefined, permissions);
+      // } else if (action === 'set-audio-publishing') {
+      //   const { enabled } = body;
+      //   if (typeof enabled !== 'boolean') {
+      //     console.error('Missing or invalid enabled parameter for set-audio-publishing');
+      //     return NextResponse.json(
+      //       { error: 'Missing or invalid enabled parameter', details: { enabled } },
+      //       { status: 400 }
+      //     );
+      //   }
+      //   console.log('Setting audio publishing for participant:', { participantIdentity, enabled });
+      //   const permissions = {
+      //     canPublish: enabled,
+      //     canSubscribe: true,
+      //     canPublishData: true,
+      //     canPublishAudio: enabled
+      //   };
+      //   await roomService.updateParticipant(roomName, participantIdentity, permissions);
+      // } else if (action === 'set-video-publishing') {
+      //   const { enabled } = body;
+      //   if (typeof enabled !== 'boolean') {
+      //     console.error('Missing or invalid enabled parameter for set-video-publishing');
+      //     return NextResponse.json(
+      //       { error: 'Missing or invalid enabled parameter', details: { enabled } },
+      //       { status: 400 }
+      //     );
+      //   }
+      //   console.log('Setting video publishing for participant:', { participantIdentity, enabled });
+      //   const permissions = {
+      //     canPublish: enabled,
+      //     canSubscribe: true,
+      //     canPublishData: true,
+      //     canPublishVideo: enabled
+      //   };
+      //   await roomService.updateParticipant(roomName, participantIdentity, undefined, permissions);
       } else if (action === 'mass-disable-publishing' || action === 'mass-enable-publishing') {
         console.log(`${action} for all participants in room:`, roomName);
         const participants = await roomService.listParticipants(roomName);

@@ -12,9 +12,15 @@ const initialState: MyGlobalState = {
 function myReducer(state: MyGlobalState, action: MyGlobalAction): MyGlobalState {
   switch (action.type) {
     case 'participantListVisibleToggle':
-      return { ...state, participantListVisible: !state.participantListVisible };
+      return { 
+        participantListVisible: !state.participantListVisible,
+        massControlVisible: false,
+      };
     case 'massControlVisibleToggle':
-      return { ...state, massControlVisible: !state.massControlVisible };
+      return { 
+        participantListVisible: false,
+        massControlVisible: !state.massControlVisible,
+      };    
     default:
       const _exhaustiveCheck: never = action;
       return state;  
