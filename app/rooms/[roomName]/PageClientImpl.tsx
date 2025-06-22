@@ -1,7 +1,6 @@
 'use client';
 
 import { decodePassphrase } from '@/lib/client-utils';
-import { DebugMode } from '@/lib/Debug';
 import { RecordingIndicator } from '@/lib/RecordingIndicator';
 import { SettingsMenu } from '@/lib/SettingsMenu';
 import { ConnectionDetails } from '@/lib/types';
@@ -56,6 +55,9 @@ export function PageClientImpl(props: {
 
   const handlePreJoinSubmit = React.useCallback(async (values: LocalUserChoices) => {
     setPreJoinChoices(values);
+
+    const accessTokenURL = new URL("/api/auth/accessToken", window.location.origin);
+    await fetch(accessTokenURL.toString());
 
     const url = new URL(CONN_DETAILS_ENDPOINT, window.location.origin);
 
@@ -266,7 +268,6 @@ function VideoConferenceComponent(props: {
         <MassControl/>
         <ParticipantList handVisible={handVisible} participantIdentityHand={participantIdentityHand} />
         <RecordButton />
-        <DebugMode />
         <RaiseHandButton/>
         <Notification visible={notify} setVisible={setNotify} text={notifyText}/>
       </RoomContext.Provider>

@@ -10,6 +10,7 @@ export function useTrackSyncTime(ref: TrackReferenceOrPlaceholder | undefined) {
     () => (ref?.publication?.track ? trackSyncTimeObserver(ref?.publication.track) : undefined),
     [ref?.publication?.track],
   );
+  // @ts-ignore
   return useObservableState(observable, {
     timestamp: Date.now(),
     rtpTimestamp: ref?.publication?.track?.rtpTimestamp,

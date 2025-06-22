@@ -55,6 +55,7 @@ export function useTrackTranscription(
       dedupeSegments(
         prevSegments,
         // when first receiving a segment, add the current media timestamp to it
+        // @ts-ignore
         newSegments.map((s) => addTimestampsToTranscription(s, syncTimestamps)),
         opts.bufferSize,
       ),

@@ -27,6 +27,7 @@ export function useParticipantAttributes(props: UseParticipantAttributesOptions 
     () => (p ? participantAttributesObserver(p) : participantAttributesObserver(p)),
     [p],
   );
+  // @ts-ignore
   const attributeState = useObservableState(attributeObserver, {
     attributes: p?.attributes,
   });
