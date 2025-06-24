@@ -221,7 +221,8 @@ export function ControlBar({
   return (
     <div 
       style={{
-        overflowX: "auto",
+        overflowY: "hidden",
+        overflowX: "scroll",
         justifyContent: "start"
       }}
 
