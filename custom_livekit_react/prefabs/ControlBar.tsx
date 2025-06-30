@@ -98,31 +98,27 @@ export function ControlBar({
       setVisibleControls({
         ...visibleControls,
         camera: false,
-        chat: false,
         microphone: false,
         screenShare: false
       })
     } else {
       if(isHost) {
-        console.log(localPermissions.canPublish, localPermissions.canPublish, localPermissions.canPublish, localPermissions.canPublishData)
         setVisibleControls({
           ...visibleControls,
           camera: localPermissions.canPublish,
-          chat: localPermissions.canPublish,
           microphone: localPermissions.canPublish,
           screenShare: localPermissions.canPublishData && controls?.chat,
         })
       } else {
         setVisibleControls({
           camera: localPermissions.canPublish,
-          chat: localPermissions.canPublish,
           microphone: localPermissions.canPublish,
           screenShare: localPermissions.canPublishData && controls?.chat,
           ...visibleControls
         })
       }
    }
-  }, [localPermissions])
+  }, [localPermissions, isHost])
 
   React.useEffect(() => {
     room.registerRpcMethod(

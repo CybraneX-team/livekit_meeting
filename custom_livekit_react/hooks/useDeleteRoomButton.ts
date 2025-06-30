@@ -15,6 +15,7 @@ export function useDeleteRoomButton(props: React.ButtonHTMLAttributes<HTMLButton
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           action: 'destroy-room',
+          participantIdentity: room.localParticipant.identity,
           roomName: room.name,
         }),
       });
