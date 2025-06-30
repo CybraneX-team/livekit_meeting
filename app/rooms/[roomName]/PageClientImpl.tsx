@@ -57,18 +57,18 @@ export function PageClientImpl(props: {
   const handlePreJoinSubmit = React.useCallback(async (values: LocalUserChoices) => {
     setPreJoinChoices(values);
 
-    const roomExistsURL = new URL("/api/auth/roomExists", window.location.origin);
-    roomExistsURL.searchParams.append('roomName', (props.roomName).split('$')[0]);
-    const roomExistsResp = await fetch(roomExistsURL.toString());
-    if (roomExistsResp.status !== 200) {
-      // Optionally handle error here
-      return;
-    }
-
     const accessTokenURL = new URL("/api/auth/accessToken", window.location.origin);
     accessTokenURL.searchParams.append('participantName', values.username);
     const accessTokenResp = await fetch(accessTokenURL.toString());
     if (accessTokenResp.status !== 200) {
+      // Optionally handle error here
+      return;
+    }
+
+    const roomExistsURL = new URL("/api/auth/roomExists", window.location.origin);
+    roomExistsURL.searchParams.append('roomName', (props.roomName).split('$')[0]);
+    const roomExistsResp = await fetch(roomExistsURL.toString());
+    if (roomExistsResp.status !== 200) {
       // Optionally handle error here
       return;
     }
