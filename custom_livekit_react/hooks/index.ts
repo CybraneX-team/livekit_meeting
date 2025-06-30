@@ -55,3 +55,5 @@ export * from './useVoiceAssistant';
 export * from './useParticipantAttributes';
 export * from './useIsRecording';
 export * from './useTextStream';
+export * from './useAttendanceButton';
+export * from './useDeleteRoomButton';

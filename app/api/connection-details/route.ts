@@ -12,7 +12,6 @@ const LIVEKIT_URL = process.env.LIVEKIT_URL;
 const JWT_SECRET = process.env.JWT_SECRET || '';
 const COOKIE_KEY = 'participantToken';
 const JWT_EXPIRY_HOURS = 12;
-const RANDOM_SUFFIX_LENGTH = 4;
 
 // Types
 interface AccessTokenPayload {
@@ -21,6 +20,7 @@ interface AccessTokenPayload {
   exp: number;
   metadata?: {
     role: string;
+    identity: string;
     [key: string]: any;
   };
 }
@@ -90,22 +90,6 @@ function verifyAccessToken(token: string): AccessTokenPayload | null {
 }
 
 /**
- * Creates a new access token with participant role
- */
-function createAccessToken(): string {
-  const payload = {
-    metadata: {
-      role: 'participant'
-    }
-  };
-
-  return jwt.sign(payload, JWT_SECRET, {
-    expiresIn: '24h',
-    algorithm: 'HS256'
-  });
-}
-
-/**
  * Creates a participant token with the given user info and room name
  */
 const createParticipantToken = async (userInfo: AccessTokenOptions, roomName: string): Promise<string> => {
@@ -166,7 +150,6 @@ function createConnectionResponse(
   roomName: string,
   participantToken: string,
   participantName: string,
-  setCookie?: string
 ): NextResponse {
   const data: ConnectionDetails = {
     serverUrl,
@@ -178,10 +161,6 @@ function createConnectionResponse(
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
   };
-
-  if (setCookie) {
-    headers['Set-Cookie'] = setCookie;
-  }
 
   return new NextResponse(JSON.stringify(data), { headers });
 }
@@ -197,38 +176,20 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     
     const livekitServerUrl = getLiveKitURL(region);
 
-    const accessTokenFromCookie = request.cookies.get("accessToken")?.value;
+    const accessTokenFromCookie = request.cookies.get("accessToken")?.value || "";
     
     let verifiedToken: AccessTokenPayload | null = null;
-    let newAccessToken: string | null = null;
-    let setCookieHeader: string | undefined;
 
-    // Try to verify existing token
-    if (accessTokenFromCookie) {
-      verifiedToken = verifyAccessToken(accessTokenFromCookie);
-    }
-
-    // If no valid token, create a new one
-    if (!verifiedToken) {
-      newAccessToken = createAccessToken();
-      verifiedToken = verifyAccessToken(newAccessToken);
-      
-      // Set cookie header for new token
-      setCookieHeader = `accessToken=${newAccessToken}; HttpOnly; Secure; SameSite=strict; Path=/`;
-    }
+    verifiedToken = verifyAccessToken(accessTokenFromCookie);
 
     // Get metadata from verified token
-    const metadata = verifiedToken?.metadata || { role: 'participant' };
+    const metadata = verifiedToken?.metadata;
 
-    // Validate user access (using the token string for blacklist check)
-    const tokenForValidation = newAccessToken || accessTokenFromCookie!;
-    validateUserAccess(tokenForValidation);
-
-    const randomSuffix = randomString(RANDOM_SUFFIX_LENGTH);
+    validateUserAccess(accessTokenFromCookie);
 
     const participantToken = await createParticipantToken(
       {
-        identity: `${participantName}__${randomSuffix}`,
+        identity: metadata?.identity,
         name: participantName,
         metadata: JSON.stringify(metadata),
       },
@@ -239,8 +200,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       livekitServerUrl,
       roomName,
       participantToken,
-      participantName,
-      setCookieHeader
+      participantName
     );
 
   } catch (error) {

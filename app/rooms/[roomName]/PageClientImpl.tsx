@@ -11,6 +11,7 @@ import {
   LocalUserChoices,
   PreJoin,
   RoomContext,
+  useRoomInfo,
   VideoConference,
 } from '../../../custom_livekit_react';
 import {
@@ -56,22 +57,35 @@ export function PageClientImpl(props: {
   const handlePreJoinSubmit = React.useCallback(async (values: LocalUserChoices) => {
     setPreJoinChoices(values);
 
+    const roomExistsURL = new URL("/api/auth/roomExists", window.location.origin);
+    roomExistsURL.searchParams.append('roomName', (props.roomName).split('$')[0]);
+    const roomExistsResp = await fetch(roomExistsURL.toString());
+    if (roomExistsResp.status !== 200) {
+      // Optionally handle error here
+      return;
+    }
+
     const accessTokenURL = new URL("/api/auth/accessToken", window.location.origin);
-    await fetch(accessTokenURL.toString());
+    accessTokenURL.searchParams.append('participantName', values.username);
+    const accessTokenResp = await fetch(accessTokenURL.toString());
+    if (accessTokenResp.status !== 200) {
+      // Optionally handle error here
+      return;
+    }
 
     const url = new URL(CONN_DETAILS_ENDPOINT, window.location.origin);
-
     url.searchParams.append('roomName', (props.roomName).split('$')[0]);
     url.searchParams.append('participantName', values.username);
     url.searchParams.append('where', props.where);
-
     if (props.region) {
       url.searchParams.append('region', props.region);
     }
-
     const connectionDetailsResp = await fetch(url.toString());
+    if (connectionDetailsResp.status !== 200) {
+      // Optionally handle error here
+      return;
+    }
     const connectionDetailsData = await connectionDetailsResp.json();
-
     setConnectionDetails(connectionDetailsData);
   }, []);
 
@@ -179,10 +193,34 @@ function VideoConferenceComponent(props: {
     };
   }, []);
 
+  const markAttendance = async () => {
+    await new Promise(resolve => setTimeout(resolve, 1000));
+
+    const CONN_DETAILS_ENDPOINT = '/api/participant-control';
+
+    const url = new URL(CONN_DETAILS_ENDPOINT, window.location.origin);
+
+    const payload = {
+      roomName: room.name,
+      participantIdentity: room.localParticipant.identity,
+      action: 'mark-attendance',
+      metadata: room.metadata
+    };
+
+    await fetch(url.toString(), {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    });
+  }
+
   React.useEffect(() => {
     room.on(RoomEvent.Disconnected, handleOnLeave);
     room.on(RoomEvent.EncryptionError, handleEncryptionError);
     room.on(RoomEvent.MediaDevicesError, handleError);
+    room.on(RoomEvent.Connected, markAttendance);
     if (e2eeSetupComplete) {
       room
         .connect(
@@ -208,6 +246,7 @@ function VideoConferenceComponent(props: {
       room.off(RoomEvent.Disconnected, handleOnLeave);
       room.off(RoomEvent.EncryptionError, handleEncryptionError);
       room.off(RoomEvent.MediaDevicesError, handleError);
+      room.off(RoomEvent.Connected, markAttendance);
     };
   }, [e2eeSetupComplete, room, props.connectionDetails, props.userChoices]);
 
@@ -245,6 +284,9 @@ function VideoConferenceComponent(props: {
             setNotify(false)
             setHandVisible(false)
             setParticipantIdentityHand("")
+          } else if(data.action === "can-publish") {
+            setNotify(true)
+            setNotifyText("You can enable camera, microphone and share screen")
           }
         }
       } catch (error) {

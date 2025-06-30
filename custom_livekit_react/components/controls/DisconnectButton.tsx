@@ -15,7 +15,7 @@ export interface DisconnectButtonProps extends React.ButtonHTMLAttributes<HTMLBu
  * <LiveKitRoom>
  *   <DisconnectButton>Leave room</DisconnectButton>
  * </LiveKitRoom>
- * ```
+ * ``` 
  * @public
  */
 export const DisconnectButton: (

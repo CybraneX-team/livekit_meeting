@@ -155,7 +155,7 @@ export function VideoConference({
                 </FocusLayoutContainer>
               </div>
             )}
-            <ControlBar controls={{ chat: true, settings: !!SettingsComponent }} />
+            <ControlBar controls={{ chat: true, settings: !!SettingsComponent, camera: false, microphone: false, screenShare: false }} />
           </div>
           <Chat
             style={{ display: widgetState.showChat ? 'grid' : 'none' }}

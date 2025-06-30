@@ -472,8 +472,7 @@ export function ParticipantList({ handVisible, participantIdentityHand }: Partic
                   {
                     (isHost || isCoHost) ?
                     <div style={{ display: 'flex', gap: '8px' }}>
-                        <MultiTypePublishingToggle participant={participant} type='audio'/>
-                        <MultiTypePublishingToggle participant={participant} type='video'/>
+                        <MultiTypePublishingToggle participant={participant}/>
                         <button
                           onClick={() => kickParticipant(participant as RemoteParticipant)}
                           disabled={((role === "host") || isLocal || isProcessing)}

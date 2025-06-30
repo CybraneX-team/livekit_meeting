@@ -1,6 +1,5 @@
 import { LocalParticipant, RemoteParticipant, RoomEvent } from "livekit-client";
 import { useContext, useEffect, useState } from "react";
-import { AiFillAudio, AiOutlineAudioMuted } from "react-icons/ai";
 import { HiMiniVideoCamera, HiVideoCameraSlash } from "react-icons/hi2";
 import { ParentContext } from "../ParticipantList";
 import { useLocalParticipant } from "@/custom_livekit_react";
@@ -14,10 +13,9 @@ const extractRoleFromParticipant = (participant: RemoteParticipant | LocalPartic
 
 interface MultiTypePublishingToggleProps {
   participant: RemoteParticipant | LocalParticipant;
-  type: string;
 }
 
-export const MultiTypePublishingToggle: React.FC<MultiTypePublishingToggleProps> = ({ participant, type }) => {    
+export const MultiTypePublishingToggle: React.FC<MultiTypePublishingToggleProps> = ({ participant }) => {    
     const { room, isProcessing, setIsProcessing } = useContext(ParentContext);
     
     const [canPublish, setCanPublishing] = useState(false);
@@ -45,16 +43,10 @@ export const MultiTypePublishingToggle: React.FC<MultiTypePublishingToggleProps>
 
         setIsProcessing(true);
 
-        let payload = {}
-
-        if(type === "audio") {
-            payload = {
-                microphone: !canPublish
-            }
-        } else if(type === "video") {
-            payload = {
-                camera: !canPublish
-            }
+        let payload = {
+            microphone: !canPublish,
+            camera: !canPublish,
+            screenShare: !canPublish
         }
 
         try { 
@@ -64,9 +56,23 @@ export const MultiTypePublishingToggle: React.FC<MultiTypePublishingToggleProps>
                 payload: JSON.stringify(payload),
             })
 
+            // Notify with publishData (type: can-publish)
+            if (room && room.localParticipant) {
+                const notifyData = {
+                    type: "notify",
+                    action: "can-publish",
+                    name: localParticipant.name,
+                    identity: localParticipant.identity
+                };
+                await room.localParticipant.publishData(
+                    new TextEncoder().encode(JSON.stringify(notifyData)),
+                    { reliable: true }
+                );
+            }
+
             setCanPublishing(!canPublish)
         } catch(e) {
-            console.error(`Error toggling ${type} publishing:`, e);
+            console.error(`Error toggling publishing:`, e);
         } finally {
             setIsProcessing(false)
         }
@@ -76,7 +82,7 @@ export const MultiTypePublishingToggle: React.FC<MultiTypePublishingToggleProps>
         <button
             onClick={() => toggleParticipantPublishing()}
             disabled={((role === "host") || participant.isLocal || isProcessing)}
-            title={(canPublish ? `Disable ${type}` : `Enable ${type}`)}
+            title={(canPublish ? `Disable publishing` : `Enable publishing`)}
             style={{
                 padding: '8px',
                 background: canPublish ? 'var(--lk-bg2)' : 'var(--lk-danger)',
@@ -92,7 +98,7 @@ export const MultiTypePublishingToggle: React.FC<MultiTypePublishingToggleProps>
                 minWidth: '36px'
             }}
             >
-            {canPublish ? (type === "audio" ? <AiFillAudio/> : <HiMiniVideoCamera/>) : (type === "audio" ? <AiOutlineAudioMuted/> : <HiVideoCameraSlash/>)}
+            {canPublish ?  <HiMiniVideoCamera/> : <HiVideoCameraSlash/>}
         </button>
     )
 }

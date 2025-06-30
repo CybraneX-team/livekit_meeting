@@ -1,5 +1,5 @@
 import { RoomServiceClient } from 'livekit-server-sdk';
-import { Participant, Track } from 'livekit-client';
+import { Track } from 'livekit-client';
 import { NextResponse } from 'next/server';
 import { kickUser } from '@/lib/blackList';
 
@@ -235,6 +235,27 @@ export async function POST(req: Request) {
           console.log(Track.Source.Microphone)
           await roomService.mutePublishedTrack(roomName, participant.identity, (participant?.tracks.find((t) => t.source === 2))?.sid + "", shouldMute)
         }));
+      } else if(action === 'mark-attendance') {
+        let metadata = body.metadata;
+
+        try {
+          metadata = JSON.parse(body.metadata);
+        } catch  {
+          if(metadata === "") {
+            metadata = {
+              attendance: {
+                participants: [],
+                timeStamp: []
+              }
+            }
+          } 
+        }
+
+        if(!metadata.attendance.participants.includes(participantIdentity)) {
+          metadata.attendance.participants.push(participantIdentity);
+          metadata.attendance.timeStamp.push(new Date())
+          await roomService.updateRoomMetadata(roomName, JSON.stringify(metadata))
+        }
       } else if (action === 'mass-mute-video' || action === 'mass-unmute-video') {
         console.log(`${action} for all participants in room:`, roomName);
         const participants = await roomService.listParticipants(roomName);
@@ -249,6 +270,9 @@ export async function POST(req: Request) {
           
           await roomService.mutePublishedTrack(roomName, participant.identity, (participant?.tracks.find((t) => t.source === 2))?.sid + "", shouldMute)
         }));
+      } else if (action === 'destroy-room') {
+        console.log('Destroying room:', roomName);
+        await roomService.deleteRoom(roomName);
       } else {
         console.error('Invalid action:', action);
         return NextResponse.json(

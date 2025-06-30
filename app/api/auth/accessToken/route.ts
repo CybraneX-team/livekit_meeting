@@ -1,25 +1,44 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { SignJWT, jwtVerify } from 'jose';
+import { randomString } from '@/lib/client-utils';
 
-export async function GET() {
+const RANDOM_SUFFIX_LENGTH = 4;
+
+export async function GET(request: NextRequest) {
   const cookieStore = await cookies();
   const existingToken = cookieStore.get('accessToken');
+  const participantName = request.nextUrl.searchParams.get('participantName')
 
   // Default payload for new tokens
-  const defaultPayload = { metadata: { role: 'participant' } };
+  const randomSuffix = randomString(RANDOM_SUFFIX_LENGTH);
+  let defaultPayload = { 
+    metadata: { 
+      identity: `${participantName}__${randomSuffix}`,
+      role: 'participant' 
+    } 
+  };
 
   // If access token exists, validate it
   if (existingToken) {
     try {
       // Verify the token
-      await jwtVerify(
+      let { payload } = await jwtVerify(
         existingToken.value,
         new TextEncoder().encode(process.env.JWT_SECRET)
       );
-      
-      // If token is valid, return without doing anything
-      return NextResponse.json({ message: 'Valid access token exists' });
+
+      if(!payload.identity) {
+        defaultPayload = {
+          metadata: {
+            identity: `${participantName}__${randomSuffix}`,
+            role: 'participant',
+            ...(payload.metadata || {})
+          }
+        }
+      } else {
+        return NextResponse.json({ message: 'Valid access token exists' });
+      }      
     } catch (error) {
       // If token is invalid, we'll create a new one with default payload
       console.log('Token validation failed:', error);

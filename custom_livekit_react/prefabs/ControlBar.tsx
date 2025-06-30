@@ -17,6 +17,13 @@ import { ParticipantButton } from '../components/controls/ParticipantButton';
 import { IoPeople } from "react-icons/io5";
 import { MassControlButton } from '../components/controls/MassControlButton';
 import { CiLink } from "react-icons/ci";
+import { BiSolidVideoRecording } from "react-icons/bi";
+import { BsEmojiSmileFill } from "react-icons/bs";
+import { CiViewList } from "react-icons/ci";
+import { AttendanceButton } from '../components/controls/AttendanceButton';
+import { DeleteRoomButton } from '../components/controls/DeleteRoomButton';
+import { GiSpikyExplosion } from "react-icons/gi";
+
 
 /** @public */
 export type ControlBarControls = {
@@ -83,6 +90,8 @@ export function ControlBar({
   const [visibleControls, setVisibleControls] = React.useState({ leave: true, participant: true,  ...controls });
 
   const localPermissions = useLocalParticipantPermissions();
+   
+  const [isHost, setIsHost] = React.useState(false);
 
   React.useEffect(() => {
     if (!localPermissions) {
@@ -94,13 +103,24 @@ export function ControlBar({
         screenShare: false
       })
     } else {
-      setVisibleControls({
-        ...visibleControls,
-        camera: localPermissions.canPublish,
-        chat: localPermissions.canPublish,
-        microphone: localPermissions.canPublish,
-        screenShare: localPermissions.canPublishData && controls?.chat
-      })
+      if(isHost) {
+        console.log(localPermissions.canPublish, localPermissions.canPublish, localPermissions.canPublish, localPermissions.canPublishData)
+        setVisibleControls({
+          ...visibleControls,
+          camera: localPermissions.canPublish,
+          chat: localPermissions.canPublish,
+          microphone: localPermissions.canPublish,
+          screenShare: localPermissions.canPublishData && controls?.chat,
+        })
+      } else {
+        setVisibleControls({
+          camera: localPermissions.canPublish,
+          chat: localPermissions.canPublish,
+          microphone: localPermissions.canPublish,
+          screenShare: localPermissions.canPublishData && controls?.chat,
+          ...visibleControls
+        })
+      }
    }
   }, [localPermissions])
 
@@ -115,10 +135,11 @@ export function ControlBar({
           ...parse
         });
 
+
         if("camera" in parse) {
-          room.localParticipant.setCameraEnabled(parse.camera)
+          room.localParticipant.setCameraEnabled(false)
         } else if("microphone" in parse) {
-          room.localParticipant.setMicrophoneEnabled(parse.microphone)
+          room.localParticipant.setMicrophoneEnabled(false)
         }
 
         return "200"
@@ -129,8 +150,6 @@ export function ControlBar({
     room.unregisterRpcMethod("set-publishing")
   }
   }, [room])
-
-  const [isHost, setIsHost] = React.useState(false);
 
   React.useEffect(() => {
     const handleHost = () => {
@@ -297,6 +316,12 @@ export function ControlBar({
           {showText && 'Leave'}
         </DisconnectButton>
       )}
+      {isHost && (
+        <DeleteRoomButton>
+          {showIcon && <GiSpikyExplosion />}
+          {showText && 'Delete Room'}
+        </DeleteRoomButton>
+      )}
       {visibleControls.participant && (
         <ParticipantButton>
           {showIcon && <IoMdPerson />}
@@ -320,12 +345,12 @@ export function ControlBar({
           <CiLink /> Meet Link
         </button>
       )}
-      {/* {isHost && (
-        <Button>
-          {showIcon && <IoPeople />}
-          {showText && 'Recording'}
-        </MassControlButton>
-      )} */}
+      {isHost && (
+        <AttendanceButton>
+          {showIcon && <CiViewList />}
+          {showText && 'Attendance'}
+        </AttendanceButton>
+      )}
       <StartMediaButton />
     </div>
   );
