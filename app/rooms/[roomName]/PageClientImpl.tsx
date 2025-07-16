@@ -91,6 +91,14 @@ export function PageClientImpl(props: {
 
   const handlePreJoinError = React.useCallback((e: any) => console.error(e), []);
 
+  React.useEffect(() => {
+    // Store the current room route in sessionStorage as 'lastRoute'
+    if (typeof window !== 'undefined') {
+      const pathname = `/rooms/${props.roomName}`;
+      sessionStorage.setItem('lastRoute', pathname);
+    }
+  }, [props.roomName]);
+
   return (
     <main data-lk-theme="default" style={{ height: '100%' }}>
       {(!connectionDetails || preJoinChoices === undefined) ? (
@@ -216,11 +224,13 @@ function VideoConferenceComponent(props: {
     });
   }
 
+
   React.useEffect(() => {
     room.on(RoomEvent.Disconnected, handleOnLeave);
     room.on(RoomEvent.EncryptionError, handleEncryptionError);
     room.on(RoomEvent.MediaDevicesError, handleError);
     room.on(RoomEvent.Connected, markAttendance);
+    room.on(RoomEvent.Disconnected, markAttendance)
     if (e2eeSetupComplete) {
       room
         .connect(
@@ -247,6 +257,7 @@ function VideoConferenceComponent(props: {
       room.off(RoomEvent.EncryptionError, handleEncryptionError);
       room.off(RoomEvent.MediaDevicesError, handleError);
       room.off(RoomEvent.Connected, markAttendance);
+      room.off(RoomEvent.Disconnected, markAttendance)
     };
   }, [e2eeSetupComplete, room, props.connectionDetails, props.userChoices]);
 

@@ -23,6 +23,7 @@ import { CiViewList } from "react-icons/ci";
 import { AttendanceButton } from '../components/controls/AttendanceButton';
 import { DeleteRoomButton } from '../components/controls/DeleteRoomButton';
 import { GiSpikyExplosion } from "react-icons/gi";
+import { RecordButton } from '../../components/RecordButton';
 
 
 /** @public */
@@ -251,7 +252,7 @@ export function ControlBar({
             onChange={microphoneOnChange}
             onDeviceError={(error) => onDeviceError?.({ source: Track.Source.Microphone, error })}
           >
-            {showText && 'Microphone'}
+            {'Microphone'}
           </TrackToggle>
           <div className="lk-button-group-menu">
             <MediaDeviceMenu
@@ -271,7 +272,7 @@ export function ControlBar({
             onChange={cameraOnChange}
             onDeviceError={(error) => onDeviceError?.({ source: Track.Source.Camera, error })}
           >
-            {showText && 'Camera'}
+            {'Camera'}
           </TrackToggle>
           <div className="lk-button-group-menu">
             <MediaDeviceMenu
@@ -291,44 +292,53 @@ export function ControlBar({
           onChange={onScreenShareChange}
           onDeviceError={(error) => onDeviceError?.({ source: Track.Source.ScreenShare, error })}
         >
-          {showText && (isScreenShareEnabled ? 'Stop screen share' : 'Share screen')}
+          {(isScreenShareEnabled ? 'Stop screen share' : 'Share screen')}
         </TrackToggle>
       )}
       {visibleControls.chat && (
         <ChatToggle>
           {showIcon && <ChatIcon />}
-          {showText && 'Chat'}
+          {'Chat'}
         </ChatToggle>
       )}
       {visibleControls.settings && (
         <SettingsMenuToggle>
           {showIcon && <GearIcon />}
-          {showText && 'Settings'}
+          {'Settings'}
         </SettingsMenuToggle>
       )}
       {visibleControls.leave && (
         <DisconnectButton>
           {showIcon && <LeaveIcon />}
-          {showText && 'Leave'}
+          {'Leave'}
         </DisconnectButton>
       )}
       {isHost && (
         <DeleteRoomButton>
           {showIcon && <GiSpikyExplosion />}
-          {showText && 'Delete Room'}
+          {'Delete Room'}
         </DeleteRoomButton>
       )}
       {visibleControls.participant && (
         <ParticipantButton>
           {showIcon && <IoMdPerson />}
-          {showText && 'Participant'}
+          {'Participant'}
         </ParticipantButton>
       )}
       {isHost && (
         <MassControlButton>
           {showIcon && <IoPeople />}
-          {showText && 'Mass Control'}
+          {'Mass Control'}
         </MassControlButton>
+      )}
+      {isHost && (
+        <RecordButton />
+      )}
+      {isHost && (
+        <AttendanceButton>
+          {showIcon && <CiViewList />}
+          {'Attendance'}
+        </AttendanceButton>
       )}
       {isHost && (
         <button
@@ -340,12 +350,6 @@ export function ControlBar({
         >
           <CiLink /> Meet Link
         </button>
-      )}
-      {isHost && (
-        <AttendanceButton>
-          {showIcon && <CiViewList />}
-          {showText && 'Attendance'}
-        </AttendanceButton>
       )}
       <StartMediaButton />
     </div>

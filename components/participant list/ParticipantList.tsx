@@ -12,6 +12,7 @@ import { AiOutlineAudioMuted } from "react-icons/ai";
 import { FaHandPaper } from "react-icons/fa";
 import { MyGlobalContext } from '@/state_mangement/MyGlobalContext';
 import { MultiTypePublishingToggle } from './components/MultiTypePublishingToggle';
+import React from 'react';
 
 const CONN_DETAILS_ENDPOINT = '/api/participant-control';
 
@@ -37,7 +38,7 @@ const defaultContextValue: ComponentContextType = {
 export const ParentContext = createContext<ComponentContextType>(defaultContextValue);
 
 export function ParticipantList({ handVisible, participantIdentityHand }: ParticipantListProps) {
-  const { state } = useContext(MyGlobalContext)
+  const { state, dispatch } = useContext(MyGlobalContext)
   const room = useRoomContext();
   const participants = useParticipants();
   const { localParticipant } = useLocalParticipant();
@@ -46,6 +47,26 @@ export function ParticipantList({ handVisible, participantIdentityHand }: Partic
   const [isProcessing, setIsProcessing] = useState(false);
   const [isOpenDialogue, setIsOpenDialogue] = useState<boolean>(false);
   const [dialogueParticipant, setdialogueParticipant] = useState<RemoteParticipant>();
+
+  // Ref for the participant list container
+  const participantListRef = React.useRef<HTMLDivElement>(null);
+
+  // Close on outside click
+  useEffect(() => {
+    if (!state.participantListVisible) return;
+    function handleClickOutside(event: MouseEvent) {
+      if (
+        participantListRef.current &&
+        !participantListRef.current.contains(event.target as Node)
+      ) {
+        if (dispatch) dispatch({ type: 'participantListVisibleToggle' });
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [state.participantListVisible, dispatch]);
 
   const contextValue = {
     room,
@@ -409,6 +430,7 @@ export function ParticipantList({ handVisible, participantIdentityHand }: Partic
 
       {state.participantListVisible && (
         <div
+          ref={participantListRef}
           style={{
             position: 'fixed',
             top: '8px',
@@ -417,10 +439,10 @@ export function ParticipantList({ handVisible, participantIdentityHand }: Partic
             border: '1px solid var(--lk-border)',
             borderRadius: '8px',
             padding: '16px',
-            overflowY: 'auto',
+            overflowY: 'scroll',
+            scrollBehavior: 'smooth',
             zIndex: 1000,
             boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
-            overflow: 'scroll'
           }}
         >
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -441,7 +463,6 @@ export function ParticipantList({ handVisible, participantIdentityHand }: Partic
                     padding: '12px',
                     borderRadius: '6px',
                     border: '1px solid var(--lk-border)',
-                    scrollBehavior: 'smooth'
                   }}
                 > 
                   <div style={{ display: 'flex', gap: '4px', marginBottom: '.5rem' }}>
@@ -476,7 +497,7 @@ export function ParticipantList({ handVisible, participantIdentityHand }: Partic
                         <button
                           onClick={() => kickParticipant(participant as RemoteParticipant)}
                           disabled={((role === "host") || isLocal || isProcessing)}
-                          title='Kick participant'
+                          title='Remove participant'
                           style={{
                             padding: '8px',
                             background: 'var(--lk-bg2)',

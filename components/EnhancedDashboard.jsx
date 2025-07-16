@@ -483,7 +483,7 @@ const EnhancedDashboard = () => {
                       <div className="meeting-actions">
                         <motion.button 
                           className="join-button"
-                          onClick={() => router.push(`/rooms/${meeting.id}$dashboard`)}
+                          onClick={() => router.push(`/rooms/${meeting.id}`)}
                           whileHover={{ scale: 1.05 }}
                           whileTap={{ scale: 0.95 }}
                         >
