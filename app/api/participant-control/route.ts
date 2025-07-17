@@ -199,23 +199,20 @@ export async function POST(req: Request) {
       //   };
       //   await roomService.updateParticipant(roomName, participantIdentity, undefined, permissions);
       } else if (action === 'mass-disable-publishing' || action === 'mass-enable-publishing') {
-        console.log(`${action} for all participants in room:`, roomName);
         const participants = await roomService.listParticipants(roomName);
-        const canPublish = action === 'mass-enable-publishing';
+        const bool = action === 'mass-enable-publishing';
         
         // Update all participants in parallel
         await Promise.all(participants.map(async (participant) => {
-          console.log(participant.metadata)
-
           const { role } = JSON.parse(participant.metadata);
 
           if(role === "host" || role === "co-host") return;
           if(participant.identity === participantIdentity) return;
 
+
           const permissions = {
-            canPublish,
-            canSubscribe: true,
-            canPublishData: true
+            canPublish: bool,
+            canPublishData: bool
           };
           await roomService.updateParticipant(roomName, participant.identity, undefined, permissions);
         }));

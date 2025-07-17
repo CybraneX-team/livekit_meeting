@@ -111,11 +111,12 @@ export function ControlBar({
           screenShare: localPermissions.canPublishData && controls?.chat,
         })
       } else {
+        // console.log(localPermissions)
         setVisibleControls({
+          ...visibleControls,
           camera: localPermissions.canPublish,
           microphone: localPermissions.canPublish,
           screenShare: localPermissions.canPublishData && controls?.chat,
-          ...visibleControls
         })
       }
    }
