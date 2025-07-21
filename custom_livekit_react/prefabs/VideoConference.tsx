@@ -33,6 +33,10 @@ export interface VideoConferenceProps extends React.HTMLAttributes<HTMLDivElemen
   chatMessageDecoder?: MessageDecoder;
   /** @alpha */
   SettingsComponent?: React.ComponentType;
+  /**
+   * Array of participant identities who have raised their hand.
+   */
+  raisedHandIdentities?: string[];
 }
 
 /**
@@ -58,6 +62,7 @@ export function VideoConference({
   chatMessageDecoder,
   chatMessageEncoder,
   SettingsComponent,
+  raisedHandIdentities,
   ...props
 }: VideoConferenceProps) {
   const [widgetState, setWidgetState] = React.useState<WidgetState>({
@@ -142,16 +147,16 @@ export function VideoConference({
             {!focusTrack ? (
               <div className="lk-grid-layout-wrapper">
                 <GridLayout tracks={tracks}>
-                  <ParticipantTile />
+                  <ParticipantTile raisedHandIdentities={raisedHandIdentities} />
                 </GridLayout>
               </div>
             ) : (
               <div className="lk-focus-layout-wrapper">
                 <FocusLayoutContainer>
                   <CarouselLayout tracks={carouselTracks}>
-                    <ParticipantTile />
+                    <ParticipantTile raisedHandIdentities={raisedHandIdentities} />
                   </CarouselLayout>
-                  {focusTrack && <FocusLayout trackRef={focusTrack} />}
+                  {focusTrack && <FocusLayout trackRef={focusTrack} raisedHandIdentities={raisedHandIdentities} />}
                 </FocusLayoutContainer>
               </div>
             )}

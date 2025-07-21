@@ -79,7 +79,6 @@ export function Chat({
     };
 
     const updateParticipants = () => {
-      console.log(getMetadataRole(localParticipant))
       setIsHost(getMetadataRole(localParticipant) === 'host');
       const remoteHosts = remoteParticipants.filter((p) => getMetadataRole(p) === 'host');
       setHosts(remoteHosts);

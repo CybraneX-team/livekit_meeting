@@ -3,34 +3,10 @@ import { useState, useEffect, useRef } from 'react';
 import { ParticipantEvent, RoomEvent, Room } from 'livekit-client';
 
 export function useRecordButton() {
-  const room = useRoomContext();
-  const { localParticipant } = useLocalParticipant();
-  const [isHost, setIsHost] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const recordedChunksRef = useRef<Blob[]>([]);
-
-  useEffect(() => {
-    const handleVisibility = () => {
-      if(room.state === "connected") {
-        try {
-          const metadata = localParticipant.metadata ? JSON.parse(localParticipant.metadata) : {};
-          setIsHost(metadata.role === 'host' || metadata.role === 'co-host');
-        } catch {
-          setIsHost(false);
-        }
-      }
-    }
-
-    room.on(ParticipantEvent.ParticipantMetadataChanged, handleVisibility);
-    room.on(RoomEvent.ConnectionStateChanged, handleVisibility);
-
-    return () => {
-      room.off(ParticipantEvent.ParticipantMetadataChanged, handleVisibility);
-      room.off(RoomEvent.ConnectionStateChanged, handleVisibility);
-    };
-  }, [room, localParticipant.metadata]);
 
   const startRecording = async () => {
     try {
@@ -75,7 +51,7 @@ export function useRecordButton() {
   };
 
   const toggleRecording = async () => {
-    if (!isHost || isProcessing) return;
+    if (isProcessing) return;
     setIsProcessing(true);
     try {
       if (isRecording) {
@@ -103,12 +79,12 @@ export function useRecordButton() {
     }
   };
 
-  return { buttonProps, isHost, isRecording };
+  return { buttonProps, isRecording };
 }
 
 export function RecordButton() {
-  const { buttonProps, isHost, isRecording } = useRecordButton();
-  if (!isHost) return null;
+  const { buttonProps, isRecording } = useRecordButton();
+
   return (
     <button {...buttonProps}>
       <span style={{ fontSize: '1.2em', color: isRecording ? '#ff1744' : 'inherit' }}>

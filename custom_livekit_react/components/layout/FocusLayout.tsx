@@ -26,12 +26,16 @@ export interface FocusLayoutProps extends React.HTMLAttributes<HTMLElement> {
   trackRef?: TrackReferenceOrPlaceholder;
 
   onParticipantClick?: (evt: ParticipantClickEvent) => void;
+  /**
+   * Array of participant identities who have raised their hand.
+   */
+  raisedHandIdentities?: string[];
 }
 
 /**
  * The `FocusLayout` component is just a light wrapper around the `ParticipantTile` to display a single participant.
  * @public
  */
-export function FocusLayout({ trackRef, ...htmlProps }: FocusLayoutProps) {
-  return <ParticipantTile trackRef={trackRef} {...htmlProps} />;
+export function FocusLayout({ trackRef, raisedHandIdentities, ...htmlProps }: FocusLayoutProps) {
+  return <ParticipantTile trackRef={trackRef} raisedHandIdentities={raisedHandIdentities} {...htmlProps} />;
 }

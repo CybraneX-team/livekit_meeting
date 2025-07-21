@@ -46,7 +46,6 @@ export function MassControl() {
     setIsProcessing(true);
 
     try {
-      const action = publishingDisabled ? 'mass-enable-publishing' : 'mass-disable-publishing';
       const response = await fetch('/api/participant-control', {
         method: 'POST',
         headers: {
@@ -55,7 +54,7 @@ export function MassControl() {
         body: JSON.stringify({
             participantIdentity: localParticipant.identity,
             roomName: room.name,
-            action: action,
+            action: "mass-toggle-publishing",
         }),
       });
 
@@ -143,43 +142,21 @@ export function MassControl() {
             <h3 style={{ marginBottom: '8px' }}>Mass Controls</h3>
             <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '16px', flexDirection: 'column' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{ fontSize: '0.9em', color: 'var(--lk-text-secondary)' }}>Publishing</span>
-                <div
+                <button
+                  onClick={handlePublishingToggle}
+                  disabled={isProcessing}
                   style={{
-                    position: 'relative',
-                    display: 'inline-block',
-                    width: '50px',
-                    height: '24px',
+                    padding: '8px 16px',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '4px',
                     cursor: isProcessing ? 'not-allowed' : 'pointer',
+                    transition: 'background-color 0.2s ease',
+                    fontWeight: 'bold',
                   }}
-                  onClick={() => !isProcessing && handlePublishingToggle()}
                 >
-                  <div
-                    style={{
-                      position: 'absolute',
-                      top: 0,
-                      left: 0,
-                      right: 0,
-                      bottom: 0,
-                      backgroundColor: publishingDisabled ? 'var(--lk-danger)' : 'var(--lk-success)',
-                      transition: 'background-color 0.4s',
-                      borderRadius: '24px',
-                    }}
-                  />
-                  <div
-                    style={{
-                      position: 'absolute',
-                      height: '20px',
-                      width: '20px',
-                      left: publishingDisabled ? '2px' : '28px',
-                      top: '2px',
-                      backgroundColor: 'white',
-                      transition: 'left 0.4s',
-                      borderRadius: '50%',
-                      boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
-                    }}
-                  />
-                </div>
+                  Toggle publishing
+                </button>
               </div>
               <button
                 onClick={handleMassAudioToggle}

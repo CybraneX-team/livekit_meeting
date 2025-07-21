@@ -1,11 +1,11 @@
-import { RemoteParticipant, RpcInvocationData, Track } from 'livekit-client';
+import { RpcInvocationData, Track } from 'livekit-client';
 import * as React from 'react';
 import { MediaDeviceMenu } from './MediaDeviceMenu';
 import { DisconnectButton } from '../components/controls/DisconnectButton';
 import { TrackToggle } from '../components/controls/TrackToggle';
 import { ChatIcon, GearIcon, LeaveIcon } from '../assets/icons';
 import { ChatToggle } from '../components/controls/ChatToggle';
-import { useLocalParticipant, useLocalParticipantPermissions, usePersistentUserChoices } from '../hooks';
+import { useLocalParticipantPermissions, usePersistentUserChoices } from '../hooks';
 import { useMediaQuery } from '../hooks/internal';
 import { useMaybeLayoutContext, useRoomContext } from '../context';
 import { supportsScreenSharing } from '@livekit/components-core';
@@ -17,14 +17,12 @@ import { ParticipantButton } from '../components/controls/ParticipantButton';
 import { IoPeople } from "react-icons/io5";
 import { MassControlButton } from '../components/controls/MassControlButton';
 import { CiLink } from "react-icons/ci";
-import { BiSolidVideoRecording } from "react-icons/bi";
-import { BsEmojiSmileFill } from "react-icons/bs";
 import { CiViewList } from "react-icons/ci";
 import { AttendanceButton } from '../components/controls/AttendanceButton';
 import { DeleteRoomButton } from '../components/controls/DeleteRoomButton';
 import { GiSpikyExplosion } from "react-icons/gi";
 import { RecordButton } from '../../components/RecordButton';
-
+import { RaiseHandButton } from '../components/controls/RaiseHandButton';
 
 /** @public */
 export type ControlBarControls = {
@@ -95,6 +93,10 @@ export function ControlBar({
   const [isHost, setIsHost] = React.useState(false);
 
   React.useEffect(() => {
+    console.log("hello", localPermissions)
+  }, [localPermissions])
+
+  React.useEffect(() => {
     if (!localPermissions) {
       setVisibleControls({
         ...visibleControls,
@@ -108,7 +110,7 @@ export function ControlBar({
           ...visibleControls,
           camera: localPermissions.canPublish,
           microphone: localPermissions.canPublish,
-          screenShare: localPermissions.canPublishData && controls?.chat,
+          screenShare: localPermissions.canPublish,
         })
       } else {
         // console.log(localPermissions)
@@ -116,38 +118,38 @@ export function ControlBar({
           ...visibleControls,
           camera: localPermissions.canPublish,
           microphone: localPermissions.canPublish,
-          screenShare: localPermissions.canPublishData && controls?.chat,
+          screenShare: localPermissions.canPublish,
         })
       }
    }
   }, [localPermissions, isHost])
 
-  React.useEffect(() => {
-    room.registerRpcMethod(
-      'set-publishing',
-      async (data: RpcInvocationData) => {
-        const parse = JSON.parse(data.payload);
+  // React.useEffect(() => {
+  //   room.registerRpcMethod(
+  //     'set-publishing',
+  //     async (data: RpcInvocationData) => {
+  //       const parse = JSON.parse(data.payload);
 
-        setVisibleControls({
-          ...visibleControls,
-          ...parse
-        });
+  //       setVisibleControls({
+  //         ...visibleControls,
+  //         ...parse
+  //       });
 
 
-        if("camera" in parse) {
-          room.localParticipant.setCameraEnabled(false)
-        } else if("microphone" in parse) {
-          room.localParticipant.setMicrophoneEnabled(false)
-        }
+  //       if("camera" in parse) {
+  //         room.localParticipant.setCameraEnabled(false)
+  //       } else if("microphone" in parse) {
+  //         room.localParticipant.setMicrophoneEnabled(false)
+  //       }
 
-        return "200"
-      }
-  );
+  //       return "200"
+  //     }
+  // );
 
-  return () => {
-    room.unregisterRpcMethod("set-publishing")
-  }
-  }, [room])
+  // return () => {
+  //   room.unregisterRpcMethod("set-publishing")
+  // }
+  // }, [room])
 
   React.useEffect(() => {
     const handleHost = () => {
@@ -238,9 +240,8 @@ export function ControlBar({
   return (
     <div 
       style={{
-        overflowY: "hidden",
-        overflowX: "scroll",
-        justifyContent: "start"
+        justifyContent: "start",
+        overflowX: "scroll"
       }}
 
       {...htmlProps}
@@ -326,6 +327,7 @@ export function ControlBar({
           {'Participant'}
         </ParticipantButton>
       )}
+      <RaiseHandButton />
       {isHost && (
         <MassControlButton>
           {showIcon && <IoPeople />}

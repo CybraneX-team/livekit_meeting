@@ -5,10 +5,6 @@ import { CiCircleRemove } from "react-icons/ci";
 import { MdOutlineDriveFileRenameOutline } from "react-icons/md";
 import { FaDoorOpen } from "react-icons/fa";
 import { MdOutlinePerson4 } from "react-icons/md";
-import { HiMiniVideoCamera } from "react-icons/hi2";
-import { HiVideoCameraSlash } from "react-icons/hi2";
-import { AiFillAudio } from "react-icons/ai";
-import { AiOutlineAudioMuted } from "react-icons/ai";
 import { FaHandPaper } from "react-icons/fa";
 import { MyGlobalContext } from '@/state_mangement/MyGlobalContext';
 import { MultiTypePublishingToggle } from './components/MultiTypePublishingToggle';
@@ -450,8 +446,6 @@ export function ParticipantList({ handVisible, participantIdentityHand }: Partic
               const metadata = participant.metadata ? JSON.parse(participant.metadata) : {};
               const role = metadata.role || 'participant';
               const isLocal = participant.isLocal;
-              const isMuted = isParticipantMuted(participant as RemoteParticipant);
-              const isVideoDisabled = isParticipantVideoDisabled(participant as RemoteParticipant);
 
               return (
                 <div 
@@ -493,7 +487,7 @@ export function ParticipantList({ handVisible, participantIdentityHand }: Partic
                   {
                     (isHost || isCoHost) ?
                     <div style={{ display: 'flex', gap: '8px' }}>
-                        <MultiTypePublishingToggle participant={participant}/>
+                        <MultiTypePublishingToggle participant={participant} disabled={((role === "host") || isLocal || isProcessing)}/>
                         <button
                           onClick={() => kickParticipant(participant as RemoteParticipant)}
                           disabled={((role === "host") || isLocal || isProcessing)}

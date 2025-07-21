@@ -5,13 +5,11 @@ import { RecordingIndicator } from '@/lib/RecordingIndicator';
 import { SettingsMenu } from '@/lib/SettingsMenu';
 import { ConnectionDetails } from '@/lib/types';
 import { ParticipantList } from '@/components/participant list/ParticipantList';
-import { RecordButton } from '@/components/RecordButton';
 import {
   formatChatMessageLinks,
   LocalUserChoices,
   PreJoin,
   RoomContext,
-  useRoomInfo,
   VideoConference,
 } from '../../../custom_livekit_react';
 import {
@@ -28,7 +26,6 @@ import {
 } from 'livekit-client';
 import { useRouter } from 'next/navigation';
 import React, { useState } from 'react';
-import { RaiseHandButton } from '@/components/RaiseHandButton';
 import Notification from '@/components/Notification';
 import { MassControl } from '@/components/MassControl';
 
@@ -278,6 +275,7 @@ function VideoConferenceComponent(props: {
   const [notifyText, setNotifyText] = useState<string>('');
   const [handVisible, setHandVisible] = useState(false)
   const [participantIdentityHand, setParticipantIdentityHand] = useState("")
+  const [raisedHandIdentities, setRaisedHandIdentities] = useState<string[]>([]);
 
   React.useEffect(() => {
     const handleData = (payload: Uint8Array, participant?: RemoteParticipant) => {
@@ -287,14 +285,16 @@ function VideoConferenceComponent(props: {
         
         if (data.type === 'notify') {
           if (data.action === 'raise') {
-            setNotify(true)
-            setNotifyText(`${data.name} rasied hand!`)
+            // setNotify(true)
+            // setNotifyText(`${data.name} rasied hand!`)
             setHandVisible(true)
             setParticipantIdentityHand(data.identity)
+            setRaisedHandIdentities(prev => prev.includes(data.identity) ? prev : [...prev, data.identity]);
           } else if(data.action === 'lower') {
-            setNotify(false)
+            // setNotify(false)
             setHandVisible(false)
             setParticipantIdentityHand("")
+            setRaisedHandIdentities(prev => prev.filter(id => id !== data.identity));
           } else if(data.action === "can-publish") {
             setNotify(true)
             setNotifyText("You can enable camera, microphone and share screen")
@@ -317,11 +317,10 @@ function VideoConferenceComponent(props: {
           <VideoConference
             chatMessageFormatter={formatChatMessageLinks}
             SettingsComponent={SHOW_SETTINGS_MENU ? SettingsMenu : undefined}
+            raisedHandIdentities={raisedHandIdentities}
           />
         <MassControl/>
         <ParticipantList handVisible={handVisible} participantIdentityHand={participantIdentityHand} />
-        <RecordButton />
-        <RaiseHandButton/>
         <Notification visible={notify} setVisible={setNotify} text={notifyText}/>
       </RoomContext.Provider>
     </div>

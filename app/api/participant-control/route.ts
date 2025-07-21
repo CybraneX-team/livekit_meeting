@@ -113,6 +113,7 @@ export async function POST(req: Request) {
         const metadata = JSON.stringify({ inWaitingRoom: true });
         // Restrict permissions in waiting room
         const permissions = {
+          ...(participant.permission),
           canPublish: false,
           canSubscribe: false,
           canPublishData: false
@@ -123,6 +124,7 @@ export async function POST(req: Request) {
         const metadata = JSON.stringify({ inWaitingRoom: false });
         // Restore full permissions
         const permissions = {
+          ...(participant.permission),
           canPublish: true,
           canSubscribe: true,
           canPublishData: true
@@ -133,6 +135,7 @@ export async function POST(req: Request) {
         const metadata = JSON.stringify({ role: 'co-host' });
         // Co-hosts get full permissions
         const permissions = {
+          ...(participant.permission),
           canPublish: true,
           canSubscribe: true,
           canPublishData: true
@@ -143,64 +146,20 @@ export async function POST(req: Request) {
         const metadata = JSON.stringify({ role: 'participant' });
         // Regular participant permissions
         const permissions = {
+          ...(participant.permission),
           canPublish: true,
           canSubscribe: true,
           canPublishData: true
         };
         await roomService.updateParticipant(roomName, participantIdentity, metadata, permissions);
-      } else if (action === 'disable-publishing') {
-        console.log('Disabling publishing for participant:', participantIdentity);
+      } else if (action === 'toggle-publishing') {
         const permissions = {
-          canPublish: false,
-          canSubscribe: true,
-          canPublishData: true
+          ...participant.permission,
+          canPublish: !participant.permission?.canPublish,
         };
         await roomService.updateParticipant(roomName, participantIdentity, undefined, permissions);
-      } else if (action === 'enable-publishing') {
-        console.log('Enabling publishing for participant:', participantIdentity);
-        const permissions = {
-          canPublish: true,
-          canSubscribe: true,
-          canPublishData: true
-        };
-        await roomService.updateParticipant(roomName, participantIdentity, undefined, permissions);
-      // } else if (action === 'set-audio-publishing') {
-      //   const { enabled } = body;
-      //   if (typeof enabled !== 'boolean') {
-      //     console.error('Missing or invalid enabled parameter for set-audio-publishing');
-      //     return NextResponse.json(
-      //       { error: 'Missing or invalid enabled parameter', details: { enabled } },
-      //       { status: 400 }
-      //     );
-      //   }
-      //   console.log('Setting audio publishing for participant:', { participantIdentity, enabled });
-      //   const permissions = {
-      //     canPublish: enabled,
-      //     canSubscribe: true,
-      //     canPublishData: true,
-      //     canPublishAudio: enabled
-      //   };
-      //   await roomService.updateParticipant(roomName, participantIdentity, permissions);
-      // } else if (action === 'set-video-publishing') {
-      //   const { enabled } = body;
-      //   if (typeof enabled !== 'boolean') {
-      //     console.error('Missing or invalid enabled parameter for set-video-publishing');
-      //     return NextResponse.json(
-      //       { error: 'Missing or invalid enabled parameter', details: { enabled } },
-      //       { status: 400 }
-      //     );
-      //   }
-      //   console.log('Setting video publishing for participant:', { participantIdentity, enabled });
-      //   const permissions = {
-      //     canPublish: enabled,
-      //     canSubscribe: true,
-      //     canPublishData: true,
-      //     canPublishVideo: enabled
-      //   };
-      //   await roomService.updateParticipant(roomName, participantIdentity, undefined, permissions);
-      } else if (action === 'mass-disable-publishing' || action === 'mass-enable-publishing') {
+      } else if (action === 'mass-toggle-publishing') {
         const participants = await roomService.listParticipants(roomName);
-        const bool = action === 'mass-enable-publishing';
         
         // Update all participants in parallel
         await Promise.all(participants.map(async (participant) => {
@@ -209,10 +168,9 @@ export async function POST(req: Request) {
           if(role === "host" || role === "co-host") return;
           if(participant.identity === participantIdentity) return;
 
-
           const permissions = {
-            canPublish: bool,
-            canPublishData: bool
+            ...(participant.permission),
+            canPublish: !(participant.permission?.canPublish),
           };
           await roomService.updateParticipant(roomName, participant.identity, undefined, permissions);
         }));

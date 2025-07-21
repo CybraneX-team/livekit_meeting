@@ -18,6 +18,7 @@ import {
 import { FocusToggle } from '../controls/FocusToggle';
 import { ParticipantPlaceholder } from '../../assets/images';
 import { LockLockedIcon, ScreenShareIcon } from '../../assets/icons';
+import { FaHandPaper } from 'react-icons/fa';
 import { VideoTrack } from './VideoTrack';
 import { AudioTrack } from './AudioTrack';
 import { useParticipantTile } from '../../hooks';
@@ -73,6 +74,11 @@ export interface ParticipantTileProps extends React.HTMLAttributes<HTMLDivElemen
   disableSpeakingIndicator?: boolean;
 
   onParticipantClick?: (event: ParticipantClickEvent) => void;
+  /**
+   * Array of participant identities who have raised their hand.
+   * If the current participant's identity is in this array, show the hand icon.
+   */
+  raisedHandIdentities?: string[];
 }
 
 /**
@@ -100,6 +106,7 @@ export const ParticipantTile: (
       children,
       onParticipantClick,
       disableSpeakingIndicator,
+      raisedHandIdentities,
       ...htmlProps
     }: ParticipantTileProps,
     ref,
@@ -132,8 +139,34 @@ export const ParticipantTile: (
       [trackReference, layoutContext],
     );
 
+    const participantIdentity = trackReference?.participant?.identity;
+    const showHand =
+      Array.isArray(raisedHandIdentities) &&
+      participantIdentity &&
+      raisedHandIdentities.includes(participantIdentity);
+
     return (
       <div ref={ref} style={{ position: 'relative' }} {...elementProps}>
+        {/* Hand-raise indicator in top right */}
+        {showHand && (
+          <div
+            style={{
+              position: 'absolute',
+              top: 8,
+              right: 8,
+              zIndex: 10,
+              background: 'rgba(0,0,0,0.6)',
+              borderRadius: '50%',
+              padding: 4,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+            title="Hand Raised"
+          >
+            <FaHandPaper color="yellow" size={20} />
+          </div>
+        )}
         <TrackRefContextIfNeeded trackRef={trackReference}>
           <ParticipantContextIfNeeded participant={trackReference.participant}>
             {children ?? (
@@ -142,11 +175,36 @@ export const ParticipantTile: (
                 (trackReference.publication?.kind === 'video' ||
                   trackReference.source === Track.Source.Camera ||
                   trackReference.source === Track.Source.ScreenShare) ? (
-                  <VideoTrack
-                    trackRef={trackReference}
-                    onSubscriptionStatusChanged={handleSubscribe}
-                    manageSubscription={autoManageSubscription}
-                  />
+                  // Mitigate screen mirroring for local screen share
+                  trackReference.source === Track.Source.ScreenShare && trackReference.participant.isLocal ? (
+                    <div
+                      style={{
+                        width: '100%',
+                        height: '100%',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        background: 'rgba(0,0,0,0.7)',
+                        color: 'white',
+                        fontSize: '1.2rem',
+                        borderRadius: '8px',
+                        minHeight: '160px',
+                        minWidth: '240px',
+                        textAlign: 'center',
+                        flexDirection: 'column',
+                        zIndex: 2,
+                      }}
+                    >
+                      <ScreenShareIcon style={{ fontSize: '2rem', marginBottom: '0.5rem' }} />
+                      You are sharing your screen
+                    </div>
+                  ) : (
+                    <VideoTrack
+                      trackRef={trackReference}
+                      onSubscriptionStatusChanged={handleSubscribe}
+                      manageSubscription={autoManageSubscription}
+                    />
+                  )
                 ) : (
                   isTrackReference(trackReference) && (
                     <AudioTrack

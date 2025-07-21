@@ -7,6 +7,7 @@ export * from './controls/MediaDeviceSelect';
 export * from './controls/StartAudio';
 export * from './controls/StartMediaButton';
 export * from './controls/TrackToggle';
+export * from './controls/RaiseHandButton';
 export * from './layout';
 export * from './layout/LayoutContextProvider';
 export * from './LiveKitRoom';

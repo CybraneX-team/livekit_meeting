@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useLocalParticipant, useRoomContext } from '../custom_livekit_react';
+import { useLocalParticipant, useRoomContext } from '../../index';
 import { FaHandPaper } from "react-icons/fa";
 
 export const RaiseHandButton = () => {
@@ -31,21 +31,13 @@ export const RaiseHandButton = () => {
 
   return (
     <button
+      className="lk-button"
       onClick={toggleHand}
       style={{
-        position: 'fixed',
-        top: '80px',
-        right: '20px',
-        width: '48px',
-        height: '48px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        backgroundColor: 'var(--lk-bg2)',
-        boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
-        cursor: 'pointer',
-        border: (handState === "lower") ? "none" : "white 2px solid"
+        border: (handState === "lower") ? undefined : "white 2px solid"
       }}
+      aria-pressed={handState === "raise"}
+      title={handState === "raise" ? "Lower hand" : "Raise hand"}
     >
       <FaHandPaper />
     </button>
