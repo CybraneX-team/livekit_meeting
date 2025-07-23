@@ -209,9 +209,6 @@ export function MassControl() {
                 Mute All Video
               </button>
             </div>
-            <div style={{ fontSize: '0.9em', color: 'var(--lk-text-secondary)' }}>
-              {remoteParticipants.length} participant{remoteParticipants.length !== 1 ? 's' : ''} in room
-            </div>
           </div>
         </div>
       )}

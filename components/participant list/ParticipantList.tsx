@@ -43,6 +43,7 @@ export function ParticipantList({ handVisible, participantIdentityHand }: Partic
   const [isProcessing, setIsProcessing] = useState(false);
   const [isOpenDialogue, setIsOpenDialogue] = useState<boolean>(false);
   const [dialogueParticipant, setdialogueParticipant] = useState<RemoteParticipant>();
+  const [searchTerm, setSearchTerm] = useState('');
 
   // Ref for the participant list container
   const participantListRef = React.useRef<HTMLDivElement>(null);
@@ -435,14 +436,55 @@ export function ParticipantList({ handVisible, participantIdentityHand }: Partic
             border: '1px solid var(--lk-border)',
             borderRadius: '8px',
             padding: '16px',
-            overflowY: 'scroll',
-            scrollBehavior: 'smooth',
             zIndex: 1000,
             boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+            width: '340px', // ensure enough width for search bar
+            maxHeight: '80vh', // overall sidebar height
+            display: 'flex',
+            flexDirection: 'column',
           }}
         >
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            {participants.map((participant) => {
+          {/* Search Bar */}
+          <input
+            type="text"
+            placeholder="Search participants..."
+            value={searchTerm}
+            onChange={e => setSearchTerm(e.target.value)}
+            style={{
+              width: '100%',
+              marginBottom: '12px',
+              padding: '8px',
+              borderRadius: '4px',
+              border: '1px solid var(--lk-border)',
+              background: 'var(--lk-bg)',
+              color: 'var(--lk-text)'
+            }}
+          />
+          {/* Participant count */}
+          <div style={{ fontSize: '0.9em', color: 'var(--lk-text-secondary)', marginBottom: '8px' }}>
+            {participants.filter((participant) => {
+              const displayName = participant.identity.split('__')[0];
+              return displayName.toLowerCase().includes(searchTerm.toLowerCase());
+            }).length} participant{participants.filter((participant) => {
+              const displayName = participant.identity.split('__')[0];
+              return displayName.toLowerCase().includes(searchTerm.toLowerCase());
+            }).length !== 1 ? 's' : ''} in list
+          </div>
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '12px',
+              overflowY: 'auto',
+              maxHeight: 'calc(80vh - 56px)', // 80vh minus search bar and padding
+            }}
+          >
+            {participants
+              .filter((participant) => {
+                const displayName = participant.identity.split('__')[0];
+                return displayName.toLowerCase().includes(searchTerm.toLowerCase());
+              })
+              .map((participant) => {
               const metadata = participant.metadata ? JSON.parse(participant.metadata) : {};
               const role = metadata.role || 'participant';
               const isLocal = participant.isLocal;
