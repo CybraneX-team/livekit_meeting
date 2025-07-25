@@ -39,8 +39,6 @@ export function useAttendanceButton() {
       }
     }
 
-    console.log(metadata?.attendance);
-
     // @ts-ignore
     const attendance = metadata?.attendance;
     if (!attendance || !attendance.participants || !attendance.timeStamp) {
