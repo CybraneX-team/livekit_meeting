@@ -39,6 +39,8 @@ export function useAttendanceButton() {
       }
     }
 
+    console.log(metadata?.attendance);
+
     // @ts-ignore
     const attendance = metadata?.attendance;
     if (!attendance || !attendance.participants || !attendance.timeStamp) {
@@ -69,13 +71,10 @@ export function useAttendanceButton() {
       }
       // Format times
       const formattedFirstJoin = firstJoin ? formatIST(firstJoin) : '';
-      const formattedLastLeave = lastLeave ? formatIST(lastLeave) : '';
       const formattedTimestamps = timestamps.map(formatIST).join('; ');
       return {
         Participant: name,
         'First Join': formattedFirstJoin,
-        'Last Leave': formattedLastLeave,
-        'Timestamps': formattedTimestamps,
         Duration: formatDuration(totalDuration),
       };
     });

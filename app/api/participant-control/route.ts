@@ -57,6 +57,32 @@ export async function POST(req: Request) {
     
     const participant = participants.find(p => p.identity === participantIdentity);
     
+    try {
+    if(action === 'mark-attendance') {
+      let metadata = body.metadata;
+
+      try {
+        metadata = JSON.parse(body.metadata);
+      } catch  {
+        if(metadata === "") {
+          metadata = {
+            attendance: {
+              participants: [],
+              timeStamp: []
+            }
+          }
+        } 
+      }
+
+      metadata.attendance.participants.push(participantIdentity);
+      metadata.attendance.timeStamp.push(new Date())
+      await roomService.updateRoomMetadata(roomName, JSON.stringify(metadata))
+      return NextResponse.json({ success: true }, { status: 200 });
+    }
+  } catch(err) {
+    return NextResponse.json({ success: false }, { status: 500 });
+  }
+
     if (!participant) {
       console.error('Participant not found:', { 
         participantIdentity, 
@@ -65,7 +91,7 @@ export async function POST(req: Request) {
       return NextResponse.json(
         { 
           error: 'Participant not found',
-          details: {
+          details: {  
             participantIdentity,
             availableParticipants: participants.map(p => p.identity)
           }
@@ -190,28 +216,7 @@ export async function POST(req: Request) {
           console.log(Track.Source.Microphone)
           await roomService.mutePublishedTrack(roomName, participant.identity, (participant?.tracks.find((t) => t.source === 2))?.sid + "", shouldMute)
         }));
-      } else if(action === 'mark-attendance') {
-        let metadata = body.metadata;
-
-        try {
-          metadata = JSON.parse(body.metadata);
-        } catch  {
-          if(metadata === "") {
-            metadata = {
-              attendance: {
-                participants: [],
-                timeStamp: []
-              }
-            }
-          } 
-        }
-
-        if(!metadata.attendance.participants.includes(participantIdentity)) {
-          metadata.attendance.participants.push(participantIdentity);
-          metadata.attendance.timeStamp.push(new Date())
-          await roomService.updateRoomMetadata(roomName, JSON.stringify(metadata))
-        }
-      } else if (action === 'mass-mute-video' || action === 'mass-unmute-video') {
+      }  else if (action === 'mass-mute-video' || action === 'mass-unmute-video') {
         console.log(`${action} for all participants in room:`, roomName);
         const participants = await roomService.listParticipants(roomName);
         const shouldMute = action === 'mass-mute-video';

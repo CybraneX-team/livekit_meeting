@@ -28,6 +28,9 @@ export async function GET(request: NextRequest) {
         new TextEncoder().encode(process.env.JWT_SECRET)
       );
 
+      console.log("check", payload);
+      console.log("identity", payload.identity);
+
       if(!payload.identity) {
         defaultPayload = {
           metadata: {

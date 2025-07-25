@@ -249,6 +249,7 @@ function VideoConferenceComponent(props: {
         });
       }
     }
+    
     return () => {
       room.off(RoomEvent.Disconnected, handleOnLeave);
       room.off(RoomEvent.EncryptionError, handleEncryptionError);

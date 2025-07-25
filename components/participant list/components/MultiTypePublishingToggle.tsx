@@ -2,7 +2,7 @@ import { LocalParticipant, RemoteParticipant, RoomEvent } from "livekit-client";
 import { useContext, useEffect, useState } from "react";
 import { HiMiniVideoCamera, HiVideoCameraSlash } from "react-icons/hi2";
 import { ParentContext } from "../ParticipantList";
-import { useLocalParticipant } from "@/custom_livekit_react";
+import { useLocalParticipant, useParticipantPermissions } from "@/custom_livekit_react";
 
 interface MultiTypePublishingToggleProps {
   participant: RemoteParticipant | LocalParticipant;
@@ -14,7 +14,8 @@ export const MultiTypePublishingToggle: React.FC<MultiTypePublishingToggleProps>
     
     // const [canPublish, setCanPublishing] = useState(false);
     const { localParticipant } = useLocalParticipant();
-    
+    const permissions = useParticipantPermissions({ participant });
+    const canPublish = permissions?.canPublish ?? false;
 
     const toggleParticipantPublishing = async () => {
         if(!participant || !localParticipant) return;
@@ -60,9 +61,10 @@ export const MultiTypePublishingToggle: React.FC<MultiTypePublishingToggleProps>
 
     return (
         <button
-            onClick={() => toggleParticipantPublishing()}
+            onClick={toggleParticipantPublishing}
             disabled={disabled}
-            title="toggle publishing"
+            aria-pressed={canPublish}
+            title={canPublish ? "Disable publishing" : "Enable publishing"}
             style={{
                 padding: '8px',
                 background: 'var(--lk-bg2)',
@@ -78,7 +80,7 @@ export const MultiTypePublishingToggle: React.FC<MultiTypePublishingToggleProps>
                 minWidth: '36px'
             }}
             >
-            <HiMiniVideoCamera/>
+            {canPublish ? <HiMiniVideoCamera/> : <HiVideoCameraSlash/>}
         </button>
     )
 }
