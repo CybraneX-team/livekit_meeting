@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
 
-// In-memory chunk storage: Map<recordingId, Buffer[]>
-const globalAny = global as any;
-if (!globalAny.__recordingChunks) globalAny.__recordingChunks = new Map();
-const recordingChunks: Map<string, Buffer[]> = globalAny.__recordingChunks;
+const BUCKET = process.env.AWS_S3_BUCKET!;
+const REGION = process.env.AWS_REGION!;
+const s3 = new S3Client({ region: REGION });
 
 export async function POST(req: NextRequest) {
   const url = new URL(req.url!);
@@ -19,11 +19,25 @@ export async function POST(req: NextRequest) {
   const arrayBuffer = await req.arrayBuffer();
   const buffer = Buffer.from(arrayBuffer);
 
-  // Store chunk in memory
-  if (!recordingChunks.has(recordingId)) {
-    recordingChunks.set(recordingId, []);
+  // Debug: Log chunk storage
+  console.log('Stream: recordingId:', recordingId);
+  console.log('Stream: chunk size:', buffer.length);
+
+  // Store chunk in S3 with unique key
+  const chunkKey = `chunks/${recordingId}/${Date.now()}_${Math.random().toString(36).substr(2, 9)}.webm`;
+  
+  try {
+    await s3.send(new PutObjectCommand({
+      Bucket: BUCKET,
+      Key: chunkKey,
+      Body: buffer,
+      ContentType: 'video/webm',
+    }));
+    console.log('Stream: Stored chunk in S3:', chunkKey);
+  } catch (error) {
+    console.error('Stream: Failed to store chunk in S3:', error);
+    return NextResponse.json({ error: 'Failed to store chunk' }, { status: 500 });
   }
-  recordingChunks.get(recordingId)!.push(buffer);
 
   return NextResponse.json({ success: true });
 } 
