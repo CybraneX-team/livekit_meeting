@@ -6,7 +6,21 @@ import { PassThrough } from 'stream';
 const BUCKET = process.env.AWS_S3_BUCKET!;
 const REGION = process.env.AWS_REGION!;
 const s3 = new S3Client({ region: REGION });
-const ffmpegPath = require('path').join(process.cwd(), 'node_modules', 'ffmpeg-static', 'ffmpeg.exe');
+// Set FFmpeg path for different environments
+let ffmpegPath: string;
+if (process.platform === 'win32') {
+  // Windows
+  ffmpegPath = require('path').join(process.cwd(), 'node_modules', 'ffmpeg-static', 'ffmpeg.exe');
+} else {
+  // Linux/macOS (including Vercel)
+  ffmpegPath = require('path').join(process.cwd(), 'node_modules', 'ffmpeg-static', 'ffmpeg');
+}
+
+// Debug FFmpeg path
+console.log('FFmpeg path:', ffmpegPath);
+console.log('Platform:', process.platform);
+console.log('CWD:', process.cwd());
+
 ffmpeg.setFfmpegPath(ffmpegPath);
 
 // In-memory chunk storage: Map<recordingId, Buffer[]>

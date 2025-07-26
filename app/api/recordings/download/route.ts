@@ -1,13 +1,9 @@
 import { NextRequest } from 'next/server';
 import { S3Client, GetObjectCommand } from '@aws-sdk/client-s3';
-import ffmpeg from 'fluent-ffmpeg';
-import { PassThrough } from 'stream';
 
 const BUCKET = process.env.AWS_S3_BUCKET!;
 const REGION = process.env.AWS_REGION!;
 const s3 = new S3Client({ region: REGION });
-const ffmpegPath = require('path').join(process.cwd(), 'node_modules', 'ffmpeg-static', 'ffmpeg.exe');
-ffmpeg.setFfmpegPath(ffmpegPath);
 
 export async function GET(req: NextRequest) {
   const url = new URL(req.url!);

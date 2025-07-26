@@ -1,0 +1,12 @@
+{
+  "functions": {
+    "app/api/recordings/finalize/route.ts": {
+      "maxDuration": 60
+    }
+  },
+  "build": {
+    "env": {
+      "FFMPEG_BINARY": "node_modules/ffmpeg-static/ffmpeg"
+    }
+  }
+} 
