@@ -872,6 +872,17 @@
   transform: translateY(-1px);
 }
 
+.delete-btn {
+  background-color: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.delete-btn:hover {
+  background-color: rgba(239, 68, 68, 0.2);
+  transform: translateY(-1px);
+}
+
 .action-btn svg {
   font-size: 0.75rem;
 }

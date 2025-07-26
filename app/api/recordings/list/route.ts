@@ -22,6 +22,7 @@ export async function GET(req: NextRequest) {
       if (!meta) return null;
       return {
         url: `https://${BUCKET}.s3.${REGION}.amazonaws.com/${obj.Key}`,
+        key: obj.Key,
         ...meta,
       };
     })

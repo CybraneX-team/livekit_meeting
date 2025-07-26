@@ -9,7 +9,8 @@ import {
   FaUsers, 
   FaCalendarAlt,
   FaSpinner,
-  FaExclamationTriangle
+  FaExclamationTriangle,
+  FaTrash
 } from 'react-icons/fa';
 
 const RecordingsList = () => {
@@ -59,10 +60,37 @@ const RecordingsList = () => {
     const url = `/api/recordings/download?key=${encodeURIComponent(key)}`;
     const link = document.createElement('a');
     link.href = url;
-    link.download = filename.replace(/\.webm$/, '.mp4');
+    link.download = filename; // Keep original .webm extension
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+  };
+
+  const handleDelete = async (key, recordingName) => {
+    const confirmDelete = window.confirm(
+      `Are you sure you want to delete "${recordingName}"? This action cannot be undone.`
+    );
+    
+    if (!confirmDelete) return;
+
+    try {
+      const response = await fetch(`/api/recordings/delete?key=${encodeURIComponent(key)}`, {
+        method: 'DELETE',
+      });
+
+      if (response.ok) {
+        // Remove the recording from the local state
+        setRecordings(prevRecordings => 
+          prevRecordings.filter(recording => recording.key !== key)
+        );
+      } else {
+        const errorData = await response.json();
+        alert(`Failed to delete recording: ${errorData.error || 'Unknown error'}`);
+      }
+    } catch (err) {
+      console.error('Error deleting recording:', err);
+      alert('Failed to delete recording. Please try again.');
+    }
   };
 
   const itemVariants = {
@@ -185,13 +213,24 @@ const RecordingsList = () => {
                 <div className="recording-actions">
                   <motion.button
                     className="action-btn download-btn"
-                    onClick={() => handleDownload(`${recording.userId}_${recording.roomName}_${recording.timestamp}_${recording.recordingId}.webm`, `${recording.userId}_${recording.roomName}_${recording.timestamp}.mp4`)}
+                    onClick={() => handleDownload(recording.key, `${recording.recordingName ? recording.recordingName : recording.userId + '_' + recording.roomName + '_' + recording.timestamp}.mp4`)}
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                     title="Download recording"
                   >
                     <FaDownload />
                     Download
+                  </motion.button>
+                  
+                  <motion.button
+                    className="action-btn delete-btn"
+                    onClick={() => handleDelete(recording.key, recording.recordingName ? recording.recordingName : recording.roomName)}
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    title="Delete recording"
+                  >
+                    <FaTrash />
+                    Delete
                   </motion.button>
                 </div>
               </motion.div>

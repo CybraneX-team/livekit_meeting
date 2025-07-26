@@ -1,23 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server';
-import fs from 'fs';
-import path from 'path';
-import os from 'os';
 import ffmpeg from 'fluent-ffmpeg';
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
+import { PassThrough } from 'stream';
 
 const BUCKET = process.env.AWS_S3_BUCKET!;
 const REGION = process.env.AWS_REGION!;
 const s3 = new S3Client({ region: REGION });
-
-// Set ffmpeg path to the actual location in node_modules
-const ffmpegPath = path.join(process.cwd(), 'node_modules', 'ffmpeg-static', 'ffmpeg.exe');
-console.log('ffmpegPath:', ffmpegPath, 'exists:', fs.existsSync(ffmpegPath));
+const ffmpegPath = require('path').join(process.cwd(), 'node_modules', 'ffmpeg-static', 'ffmpeg.exe');
 ffmpeg.setFfmpegPath(ffmpegPath);
+
+// In-memory chunk storage: Map<recordingId, Buffer[]>
+const globalAny = global as any;
+if (!globalAny.__recordingChunks) globalAny.__recordingChunks = new Map();
+const recordingChunks: Map<string, Buffer[]> = globalAny.__recordingChunks;
 
 function getOutputFileName(userId: string, roomName: string, timestamp: string, recordingId: string, recordingName?: string) {
   let base = `${userId}_${roomName}_${timestamp}_${recordingId}`;
   if (recordingName) {
-    // Sanitize recordingName for filename
     const safeName = recordingName.replace(/[^a-zA-Z0-9-_]/g, '_');
     base += `__${safeName}`;
   }
@@ -40,65 +39,69 @@ export async function POST(req: NextRequest) {
   if (!recordingId || !userId || !roomName || !timestamp) {
     return NextResponse.json({ error: 'Missing required params' }, { status: 400 });
   }
-  
-  // Use cross-platform temp directory
-  const dir = path.join(os.tmpdir(), 'recordings', recordingId);
-  console.log('Recording directory:', dir, 'exists:', fs.existsSync(dir));
-  
-  if (!fs.existsSync(dir)) {
-    return NextResponse.json({ error: 'No such recording' }, { status: 404 });
-  }
-  
-  const files = fs.readdirSync(dir)
-    .filter(f => f.endsWith('.webm'))
-    .sort();
-  console.log('Found chunk files:', files);
-  
-  if (files.length === 0) {
+
+  // Get all chunks from memory
+  const chunks = recordingChunks.get(recordingId);
+  if (!chunks || chunks.length === 0) {
     return NextResponse.json({ error: 'No chunks found' }, { status: 400 });
   }
+
+  const webmBuffer = Buffer.concat(chunks);
+  const inputStream = new PassThrough();
+  inputStream.end(webmBuffer);
+
+  const ffmpegOutput = new PassThrough();
+  const outputFileName = getOutputFileName(userId, roomName, timestamp, recordingId, recordingName);
   
-  // Create ffmpeg input file list
-  const fileListPath = path.join(dir, 'inputs.txt');
-  const fileListContent = files.map(f => `file '${path.join(dir, f).replace(/'/g, "'\\''")}'`).join('\n');
-  console.log('Writing inputs.txt to:', fileListPath);
-  console.log('Input file content:', fileListContent);
+  // Collect ffmpeg output in memory first
+  const ffmpegChunks: Buffer[] = [];
+  ffmpegOutput.on('data', (chunk) => {
+    ffmpegChunks.push(Buffer.from(chunk));
+  });
   
-  fs.writeFileSync(fileListPath, fileListContent);
-  
-  const outputFile = path.join(dir, getOutputFileName(userId, roomName, timestamp, recordingId, recordingName));
-  console.log('Output file path:', outputFile);
-  
-  // Concatenate using ffmpeg
   await new Promise((resolve, reject) => {
-    ffmpeg()
-      .input(fileListPath)
-      .inputOptions(['-f', 'concat', '-safe', '0'])
-      .outputOptions(['-c', 'copy'])
-      .output(outputFile)
+    const ffmpegCommand = ffmpeg(inputStream)
+      .inputFormat('webm')
+      .outputOptions([
+        '-c:v', 'libvpx-vp9',
+        '-crf', '25',           // Better quality (25 instead of 35)
+        '-b:v', '500k',         // Higher bitrate for text clarity
+        '-deadline', 'realtime',
+        '-cpu-used', '2',       // Better quality encoding
+        '-c:a', 'libopus',
+        '-b:a', '64k',          // Better audio quality
+        '-ar', '44100',         // Standard audio sample rate
+        '-ac', '1'              // Mono audio
+      ])
+      .format('webm')
       .on('end', () => {
-        console.log('FFmpeg finished successfully');
         resolve(null);
       })
       .on('error', (err) => {
-        console.error('FFmpeg error:', err);
         reject(err);
-      })
-      .run();
+      });
+    
+    ffmpegCommand.pipe(ffmpegOutput, { end: true });
   });
   
+  // Create buffer from collected chunks for S3 upload
+  const ffmpegBuffer = Buffer.concat(ffmpegChunks);
+
   // Upload to S3
-  const fileStream = fs.createReadStream(outputFile);
-  const s3Key = getOutputFileName(userId, roomName, timestamp, recordingId, recordingName);
-  await s3.send(new PutObjectCommand({
-    Bucket: BUCKET,
-    Key: s3Key,
-    Body: fileStream,
-    ContentType: 'video/webm',
-  }));
-  
-  // Clean up temp files
-  fs.rmSync(dir, { recursive: true, force: true });
-  const s3Url = `https://${BUCKET}.s3.${REGION}.amazonaws.com/${s3Key}`;
+  try {
+    await s3.send(new PutObjectCommand({
+      Bucket: BUCKET,
+      Key: outputFileName,
+      Body: ffmpegBuffer,
+      ContentType: 'video/webm',
+    }));
+  } catch (s3Error) {
+    throw s3Error;
+  }
+
+  // Clean up memory
+  recordingChunks.delete(recordingId);
+
+  const s3Url = `https://${BUCKET}.s3.${REGION}.amazonaws.com/${outputFileName}`;
   return NextResponse.json({ success: true, url: s3Url, recordingName });
 } 

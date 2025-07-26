@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import fs from 'fs';
-import path from 'path';
-import os from 'os';
+
+// In-memory chunk storage: Map<recordingId, Buffer[]>
+const globalAny = global as any;
+if (!globalAny.__recordingChunks) globalAny.__recordingChunks = new Map();
+const recordingChunks: Map<string, Buffer[]> = globalAny.__recordingChunks;
 
 export async function POST(req: NextRequest) {
   const url = new URL(req.url!);
@@ -13,18 +15,15 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Missing required params' }, { status: 400 });
   }
 
-  // Get chunk index from query or generate
-  const chunkIndex = url.searchParams.get('chunkIndex') || Date.now().toString();
-
   // Read binary body
   const arrayBuffer = await req.arrayBuffer();
   const buffer = Buffer.from(arrayBuffer);
 
-  // Save chunk using cross-platform temp directory
-  const dir = path.join(os.tmpdir(), 'recordings', recordingId);
-  fs.mkdirSync(dir, { recursive: true });
-  const chunkPath = path.join(dir, `chunk_${chunkIndex}.webm`);
-  fs.writeFileSync(chunkPath, buffer);
+  // Store chunk in memory
+  if (!recordingChunks.has(recordingId)) {
+    recordingChunks.set(recordingId, []);
+  }
+  recordingChunks.get(recordingId)!.push(buffer);
 
   return NextResponse.json({ success: true });
 } 

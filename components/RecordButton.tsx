@@ -31,6 +31,7 @@ export function useRecordButton() {
   // Helper to finalize recording using Beacon API
   const finalizeRecordingBeacon = (recordingId: string, userId: string, roomName: string, timestamp: string, recordingName: string) => {
     if (!recordingId || !userId || !roomName || !timestamp) return;
+    console.log('[DEBUG] Calling finalizeRecordingBeacon', { recordingId, userId, roomName, timestamp, recordingName });
     const data = new Blob(
       [JSON.stringify({ recordingId, userId, roomName, timestamp, recordingName })],
       { type: 'application/json' }
@@ -41,6 +42,13 @@ export function useRecordButton() {
   useEffect(() => {
     const handleBeforeUnload = () => {
       if (isRecording && recordingIdRef.current && timestampRef.current) {
+        console.log('[DEBUG] beforeunload finalize', {
+          recordingId: recordingIdRef.current,
+          userId,
+          roomName,
+          timestamp: timestampRef.current,
+          recordingName: recordingNameRef.current || fancyRandomString()
+        });
         finalizeRecordingBeacon(
           recordingIdRef.current,
           userId || 'unknownUser',
@@ -58,10 +66,26 @@ export function useRecordButton() {
     try {
       setLimitMessage('');
       const stream = await navigator.mediaDevices.getDisplayMedia({
-        video: { displaySurface: 'monitor' },
-        audio: true
+        video: { 
+          displaySurface: 'monitor',
+          width: { ideal: 1280, max: 1920 },
+          height: { ideal: 720, max: 1080 },
+          frameRate: { ideal: 24, max: 30 }
+        },
+        audio: {
+          sampleRate: 44100,
+          channelCount: 1,
+          echoCancellation: true,
+          noiseSuppression: true
+        }
       });
-      const mediaRecorder = new window.MediaRecorder(stream, { mimeType: 'video/webm;codecs=vp9' });
+      
+      // Create optimized MediaRecorder with better bitrates
+      const mediaRecorder = new window.MediaRecorder(stream, { 
+        mimeType: 'video/webm;codecs=vp9',
+        videoBitsPerSecond: 500000,  // 500kbps video for text clarity
+        audioBitsPerSecond: 64000    // 64kbps audio
+      });
       mediaRecorderRef.current = mediaRecorder;
       chunkIndexRef.current = 0;
       recordingIdRef.current = crypto.randomUUID();
@@ -96,6 +120,13 @@ export function useRecordButton() {
         }
       };
       mediaRecorder.onstop = async () => {
+        console.log('[DEBUG] mediaRecorder.onstop triggered', {
+          recordingId: recordingIdRef.current,
+          userId,
+          roomName,
+          timestamp: timestampRef.current,
+          recordingName: recordingNameRef.current || fancyRandomString()
+        });
         if (recordingIdRef.current && timestampRef.current) {
           finalizeRecordingBeacon(
             recordingIdRef.current,
@@ -117,6 +148,7 @@ export function useRecordButton() {
 
   // Use window.prompt for recording name on stop
   const stopRecording = () => {
+    console.log('[DEBUG] stopRecording called');
     let name = window.prompt('Name your recording:', '');
     if (!name || !name.trim()) {
       name = fancyRandomString();
