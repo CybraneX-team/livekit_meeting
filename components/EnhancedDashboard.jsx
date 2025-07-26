@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { generateRoomId, encodePassphrase, randomString } from '@/lib/client-utils';
 import DashboardBackground from './DashboardBackground';
 import DashboardIllustration from './DashboardIllustration';
+import RecordingsList from './RecordingsList';
 import { 
   FaHome, 
   FaCalendarAlt, 
@@ -302,7 +303,7 @@ const EnhancedDashboard = () => {
           <span>Previous</span>
         </motion.div> */}
         
-        {/* <motion.div 
+        <motion.div 
           className={`sidebar-item ${activeSection === 'recordings' ? 'active' : ''}`}
           onClick={() => handleNavigation('recordings')}
           whileHover={{ x: 5 }}
@@ -310,7 +311,7 @@ const EnhancedDashboard = () => {
         >
           <FaVideo size={24} className="sidebar-icon" />
           <span>Recordings</span>
-        </motion.div> */}
+        </motion.div>
         
         {/* <motion.div 
           className={`sidebar-item ${activeSection === 'personal' ? 'active' : ''}`}
@@ -576,62 +577,7 @@ const EnhancedDashboard = () => {
               animate="animate"
               exit="exit"
             >
-              <motion.h2 
-                className="section-title"
-                variants={itemVariants}
-              >
-                Recordings
-              </motion.h2>
-              
-              {recordings.length === 0 ? (
-                <motion.div 
-                  className="empty-state"
-                  variants={itemVariants}
-                >
-                  <DashboardIllustration type={DashboardIllustration.types.EMPTY_RECORDINGS} size="lg" />
-                  <p>No recordings available</p>
-                </motion.div>
-              ) : (
-                <motion.div className="recording-list">
-                  {recordings.map((recording, index) => (
-                    <motion.div 
-                      key={recording.id} 
-                      className="recording-item"
-                      variants={itemVariants}
-                      custom={index}
-                      whileHover={{ scale: 1.02, backgroundColor: 'rgba(234, 179, 8, 0.1)' }}
-                    >
-                      <div className="recording-thumbnail">
-                        <DashboardIllustration type={DashboardIllustration.types.RECORDINGS} size="sm" />
-                      </div>
-                      <div className="recording-details">
-                        <h3>{recording.title}</h3>
-                        <p>{formatDate(recording.date)}</p>
-                        <div className="recording-meta">
-                          <span>{recording.duration}</span>
-                          <span>{recording.size}</span>
-                        </div>
-                      </div>
-                      <div className="recording-actions">
-                        <motion.button 
-                          className="icon-button"
-                          whileHover={{ scale: 1.1 }}
-                          whileTap={{ scale: 0.9 }}
-                        >
-                          <FaDownload />
-                        </motion.button>
-                        <motion.button 
-                          className="icon-button"
-                          whileHover={{ scale: 1.1 }}
-                          whileTap={{ scale: 0.9 }}
-                        >
-                          <FaPlay />
-                        </motion.button>
-                      </div>
-                    </motion.div>
-                  ))}
-                </motion.div>
-              )}
+              <RecordingsList />
             </motion.div>
           )}
         </AnimatePresence>

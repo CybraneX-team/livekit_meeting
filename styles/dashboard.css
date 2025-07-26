@@ -678,3 +678,200 @@
   font-size: 1.25rem;
   display: inline-block;
 }
+
+/* Recordings Section Styles */
+.recordings-section {
+  width: 100%;
+}
+
+.recordings-loading,
+.recordings-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem;
+  text-align: center;
+  gap: 1rem;
+}
+
+.recordings-loading .spinner {
+  animation: spin 1s linear infinite;
+  font-size: 2rem;
+  color: #60a5fa;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.recordings-error {
+  color: #ef4444;
+}
+
+.recordings-error svg {
+  font-size: 2rem;
+  margin-bottom: 0.5rem;
+}
+
+.retry-button {
+  background-color: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.retry-button:hover {
+  background-color: rgba(239, 68, 68, 0.2);
+}
+
+.empty-recordings {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 2rem;
+  text-align: center;
+  gap: 1rem;
+  color: #94a3b8;
+}
+
+.empty-recordings svg {
+  color: #64748b;
+}
+
+.empty-recordings h3 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin: 0;
+  color: #e2e8f0;
+}
+
+.empty-recordings p {
+  font-size: 1rem;
+  margin: 0;
+  max-width: 400px;
+}
+
+.recordings-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.recording-item {
+  background-color: rgba(30, 41, 59, 0.7);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(51, 65, 85, 0.5);
+  border-radius: 1rem;
+  padding: 1.5rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: all 0.2s ease;
+}
+
+.recording-item:hover {
+  background-color: rgba(30, 41, 59, 0.9);
+  border-color: rgba(59, 130, 246, 0.5);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+}
+
+.recording-info {
+  flex: 1;
+}
+
+.recording-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.recording-header h3 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin: 0;
+  color: #f8fafc;
+}
+
+.recording-date {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  color: #94a3b8;
+}
+
+.recording-date svg {
+  font-size: 0.75rem;
+}
+
+.recording-details {
+  display: flex;
+  gap: 1.5rem;
+  font-size: 0.875rem;
+  color: #64748b;
+}
+
+.recording-user,
+.recording-id {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.recording-user svg,
+.recording-id svg {
+  font-size: 0.75rem;
+}
+
+.recording-actions {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.action-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.play-btn {
+  background-color: rgba(34, 197, 94, 0.1);
+  color: #22c55e;
+  border: 1px solid rgba(34, 197, 94, 0.3);
+}
+
+.play-btn:hover {
+  background-color: rgba(34, 197, 94, 0.2);
+  transform: translateY(-1px);
+}
+
+.download-btn {
+  background-color: rgba(59, 130, 246, 0.1);
+  color: #3b82f6;
+  border: 1px solid rgba(59, 130, 246, 0.3);
+}
+
+.download-btn:hover {
+  background-color: rgba(59, 130, 246, 0.2);
+  transform: translateY(-1px);
+}
+
+.action-btn svg {
+  font-size: 0.75rem;
+}

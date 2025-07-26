@@ -1,41 +1,113 @@
-import { useRoomContext, useLocalParticipant } from '../custom_livekit_react';
-import { useState, useEffect, useRef } from 'react';
-import { ParticipantEvent, RoomEvent, Room } from 'livekit-client';
+import { useRoomInfo, useLocalParticipant, useParticipantInfo } from '../custom_livekit_react';
+import { useState, useRef, useEffect } from 'react';
+
+function fancyRandomString() {
+  const adjectives = ['Brave', 'Cosmic', 'Lucky', 'Mighty', 'Silent', 'Swift', 'Witty', 'Zen', 'Funky', 'Radiant'];
+  const nouns = ['Tiger', 'Falcon', 'Nova', 'Pixel', 'Echo', 'Blaze', 'Comet', 'Vortex', 'Shadow', 'Spark'];
+  return (
+    adjectives[Math.floor(Math.random() * adjectives.length)] +
+    nouns[Math.floor(Math.random() * nouns.length)] +
+    Math.floor(Math.random() * 1000)
+  );
+}
+
+const MAX_RECORDING_SIZE = 50 * 1024 * 1024; // 50MB
 
 export function useRecordButton() {
   const [isRecording, setIsRecording] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [limitMessage, setLimitMessage] = useState('');
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const recordedChunksRef = useRef<Blob[]>([]);
+  const chunkIndexRef = useRef(0);
+  const recordingIdRef = useRef<string | null>(null);
+  const timestampRef = useRef<string | null>(null);
+  const recordingNameRef = useRef<string>('');
+  const totalBytesRef = useRef(0);
+
+  const { localParticipant } = useLocalParticipant();
+  const { identity: userId } = useParticipantInfo({ participant: localParticipant });
+  const { name: roomName } = useRoomInfo();
+
+  // Helper to finalize recording using Beacon API
+  const finalizeRecordingBeacon = (recordingId: string, userId: string, roomName: string, timestamp: string, recordingName: string) => {
+    if (!recordingId || !userId || !roomName || !timestamp) return;
+    const data = new Blob(
+      [JSON.stringify({ recordingId, userId, roomName, timestamp, recordingName })],
+      { type: 'application/json' }
+    );
+    navigator.sendBeacon('/api/recordings/finalize', data);
+  };
+
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      if (isRecording && recordingIdRef.current && timestampRef.current) {
+        finalizeRecordingBeacon(
+          recordingIdRef.current,
+          userId || 'unknownUser',
+          roomName || 'unknownRoom',
+          timestampRef.current,
+          recordingNameRef.current || fancyRandomString()
+        );
+      }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [isRecording, userId, roomName]);
 
   const startRecording = async () => {
     try {
+      setLimitMessage('');
       const stream = await navigator.mediaDevices.getDisplayMedia({
         video: { displaySurface: 'monitor' },
         audio: true
       });
-      const mediaRecorder = new MediaRecorder(stream, { mimeType: 'video/webm;codecs=vp9' });
+      const mediaRecorder = new window.MediaRecorder(stream, { mimeType: 'video/webm;codecs=vp9' });
       mediaRecorderRef.current = mediaRecorder;
-      recordedChunksRef.current = [];
-      mediaRecorder.ondataavailable = (event) => {
-        if (event.data.size > 0) {
-          recordedChunksRef.current.push(event.data);
+      chunkIndexRef.current = 0;
+      recordingIdRef.current = crypto.randomUUID();
+      timestampRef.current = Date.now().toString();
+      recordingNameRef.current = '';
+      totalBytesRef.current = 0;
+
+      mediaRecorder.ondataavailable = async (event) => {
+        if (event.data.size > 0 && recordingIdRef.current && timestampRef.current) {
+          totalBytesRef.current += event.data.size;
+          if (totalBytesRef.current > MAX_RECORDING_SIZE) {
+            setLimitMessage('Recording stopped: 50MB size limit reached.');
+            if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+              mediaRecorderRef.current.stop();
+              setIsRecording(false);
+            }
+            return;
+          }
+          const params = new URLSearchParams({
+            recordingId: recordingIdRef.current,
+            userId: userId || 'unknownUser',
+            roomName: roomName || 'unknownRoom',
+            timestamp: timestampRef.current,
+            chunkIndex: chunkIndexRef.current.toString(),
+          });
+          await fetch(`/api/recordings/stream?${params.toString()}`, {
+            method: 'POST',
+            headers: {},
+            body: event.data,
+          });
+          chunkIndexRef.current += 1;
         }
       };
-      mediaRecorder.onstop = () => {
-        const blob = new Blob(recordedChunksRef.current, { type: 'video/webm' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        document.body.appendChild(a);
-        a.style.display = 'none';
-        a.href = url;
-        a.download = `recording-${new Date().toISOString()}.webm`;
-        a.click();
-        URL.revokeObjectURL(url);
-        document.body.removeChild(a);
+      mediaRecorder.onstop = async () => {
+        if (recordingIdRef.current && timestampRef.current) {
+          finalizeRecordingBeacon(
+            recordingIdRef.current,
+            userId || 'unknownUser',
+            roomName || 'unknownRoom',
+            timestampRef.current,
+            recordingNameRef.current || fancyRandomString()
+          );
+        }
         stream.getTracks().forEach(track => track.stop());
       };
-      mediaRecorder.start();
+      mediaRecorder.start(2000); // 2s chunks
       setIsRecording(true);
     } catch (err) {
       console.error('Error starting recording:', err);
@@ -43,7 +115,13 @@ export function useRecordButton() {
     }
   };
 
+  // Use window.prompt for recording name on stop
   const stopRecording = () => {
+    let name = window.prompt('Name your recording:', '');
+    if (!name || !name.trim()) {
+      name = fancyRandomString();
+    }
+    recordingNameRef.current = name.trim();
     if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
       mediaRecorderRef.current.stop();
       setIsRecording(false);
@@ -79,18 +157,25 @@ export function useRecordButton() {
     }
   };
 
-  return { buttonProps, isRecording };
+  return { buttonProps, isRecording, limitMessage };
 }
 
 export function RecordButton() {
-  const { buttonProps, isRecording } = useRecordButton();
+  const { buttonProps, isRecording, limitMessage } = useRecordButton();
 
   return (
-    <button {...buttonProps}>
-      <span style={{ fontSize: '1.2em', color: isRecording ? '#ff1744' : 'inherit' }}>
-        {isRecording ? '⏺️' : '⏺️'}
-      </span>
-      {isRecording ? 'Stop Recording' : 'Start Recording'}
-    </button>
+    <div>
+      <button {...buttonProps}>
+        <span style={{ fontSize: '1.2em', color: isRecording ? '#ff1744' : 'inherit' }}>
+          {isRecording ? '⏺️' : '⏺️'}
+        </span>
+        {isRecording ? 'Stop Recording' : 'Start Recording'}
+      </button>
+      {limitMessage && (
+        <div style={{ color: '#ef4444', marginTop: '0.5rem', fontWeight: 500 }}>
+          {limitMessage}
+        </div>
+      )}
+    </div>
   );
 } 
