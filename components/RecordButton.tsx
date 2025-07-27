@@ -28,15 +28,36 @@ export function useRecordButton() {
   const { identity: userId } = useParticipantInfo({ participant: localParticipant });
   const { name: roomName } = useRoomInfo();
 
-  // Helper to finalize recording using Beacon API
-  const finalizeRecordingBeacon = (recordingId: string, userId: string, roomName: string, timestamp: string, recordingName: string) => {
+  // Helper to finalize recording using Beacon API with retry
+  const finalizeRecordingBeacon = async (recordingId: string, userId: string, roomName: string, timestamp: string, recordingName: string) => {
     if (!recordingId || !userId || !roomName || !timestamp) return;
+    
     console.log('[DEBUG] Calling finalizeRecordingBeacon', { recordingId, userId, roomName, timestamp, recordingName });
+    
+    // Wait a bit to ensure all chunks are uploaded
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    
     const data = new Blob(
       [JSON.stringify({ recordingId, userId, roomName, timestamp, recordingName })],
       { type: 'application/json' }
     );
-    navigator.sendBeacon('/api/recordings/finalize', data);
+    
+    // Try beacon first, fallback to fetch if needed
+    const beaconResult = navigator.sendBeacon('/api/recordings/finalize', data);
+    
+    if (!beaconResult) {
+      // Fallback to fetch if beacon fails
+      try {
+        const response = await fetch('/api/recordings/finalize', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ recordingId, userId, roomName, timestamp, recordingName })
+        });
+        console.log('[DEBUG] Finalize fallback response:', response.status);
+      } catch (error) {
+        console.error('[DEBUG] Finalize fallback error:', error);
+      }
+    }
   };
 
   useEffect(() => {
@@ -49,13 +70,18 @@ export function useRecordButton() {
           timestamp: timestampRef.current,
           recordingName: recordingNameRef.current || fancyRandomString()
         });
-        finalizeRecordingBeacon(
-          recordingIdRef.current,
-          userId || 'unknownUser',
-          roomName || 'unknownRoom',
-          timestampRef.current,
-          recordingNameRef.current || fancyRandomString()
+        // Use immediate finalize for beforeunload (no delay)
+        const data = new Blob(
+          [JSON.stringify({ 
+            recordingId: recordingIdRef.current,
+            userId: userId || 'unknownUser',
+            roomName: roomName || 'unknownRoom',
+            timestamp: timestampRef.current,
+            recordingName: recordingNameRef.current || fancyRandomString()
+          })],
+          { type: 'application/json' }
         );
+        navigator.sendBeacon('/api/recordings/finalize', data);
       }
     };
     window.addEventListener('beforeunload', handleBeforeUnload);
@@ -68,8 +94,8 @@ export function useRecordButton() {
       const stream = await navigator.mediaDevices.getDisplayMedia({
         video: { 
           displaySurface: 'monitor',
-          width: { ideal: 1280, max: 1920 },
-          height: { ideal: 720, max: 1080 },
+          width: { ideal: 854, max: 854 },    // 480p width (16:9 aspect ratio)
+          height: { ideal: 480, max: 480 },   // 480p height
           frameRate: { ideal: 24, max: 30 }
         },
         audio: {
@@ -128,7 +154,7 @@ export function useRecordButton() {
           recordingName: recordingNameRef.current || fancyRandomString()
         });
         if (recordingIdRef.current && timestampRef.current) {
-          finalizeRecordingBeacon(
+          await finalizeRecordingBeacon(
             recordingIdRef.current,
             userId || 'unknownUser',
             roomName || 'unknownRoom',
