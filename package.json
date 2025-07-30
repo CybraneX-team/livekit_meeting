@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@aws-sdk/s3-request-presigner": "^3.850.0",
     "@livekit/components-core": "0.12.5",
     "@livekit/components-styles": "1.1.5",
     "@livekit/krisp-noise-filter": "0.2.16",

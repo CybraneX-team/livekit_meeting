@@ -1,7 +1,7 @@
 'use client';
 
 import { decodePassphrase } from '@/lib/client-utils';
-import { RecordingIndicator } from '@/lib/RecordingIndicator';
+import { RecordingIndicator } from '@/components/RecordingIndicator';
 import { SettingsMenu } from '@/lib/SettingsMenu';
 import { ConnectionDetails } from '@/lib/types';
 import { ParticipantList } from '@/components/participant list/ParticipantList';
@@ -323,6 +323,7 @@ function VideoConferenceComponent(props: {
         <MassControl/>
         <ParticipantList handVisible={handVisible} participantIdentityHand={participantIdentityHand} />
         <Notification visible={notify} setVisible={setNotify} text={notifyText}/>
+        <RecordingIndicator />
       </RoomContext.Provider>
     </div>
   );
