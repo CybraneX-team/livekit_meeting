@@ -18,7 +18,8 @@ import {
   FaPlay,
   FaDownload,
   FaEllipsisH,
-  FaTimes
+  FaTimes,
+  FaMicrophone
 } from 'react-icons/fa';
 
 // Animation variants
@@ -74,6 +75,12 @@ const EnhancedDashboard = () => {
   const [recordings, setRecordings] = useState([]);
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
+  const [recordingStatus, setRecordingStatus] = useState({
+    isRecording: false,
+    recordingName: '',
+    hostName: '',
+    timestamp: null
+  });
   
   // Set current time
   useEffect(() => {
@@ -701,6 +708,28 @@ const EnhancedDashboard = () => {
             transition={{ type: "spring", damping: 20 }}
           >
             {toastMessage}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Recording Status Indicator */}
+      <AnimatePresence>
+        {recordingStatus.isRecording && (
+          <motion.div 
+            className="recording-indicator"
+            initial={{ x: 100, opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            exit={{ x: 100, opacity: 0 }}
+            transition={{ type: "spring", damping: 20 }}
+          >
+            <div className="recording-pulse"></div>
+            <FaMicrophone className="recording-icon" />
+            <span className="recording-text">
+              Recording: {recordingStatus.recordingName || 'Untitled'}
+            </span>
+            <span className="recording-host">
+              by {recordingStatus.hostName}
+            </span>
           </motion.div>
         )}
       </AnimatePresence>
