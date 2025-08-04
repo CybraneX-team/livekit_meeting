@@ -44,6 +44,9 @@ export function ParticipantList({ handVisible, participantIdentityHand }: Partic
   const [isOpenDialogue, setIsOpenDialogue] = useState<boolean>(false);
   const [dialogueParticipant, setdialogueParticipant] = useState<RemoteParticipant>();
   const [searchTerm, setSearchTerm] = useState('');
+  const [renamedParticipants, setRenamedParticipants] = useState<{[key: string]: string}>({});
+  const [isKickModalOpen, setIsKickModalOpen] = useState<boolean>(false);
+  const [kickParticipantData, setKickParticipantData] = useState<RemoteParticipant | null>(null);
 
   // Ref for the participant list container
   const participantListRef = React.useRef<HTMLDivElement>(null);
@@ -125,6 +128,8 @@ export function ParticipantList({ handVisible, participantIdentityHand }: Partic
       room.off('dataReceived', handleData);
     };
   }, [room.state]);
+
+
 
   const toggleParticipantAudio = async (participant: RemoteParticipant) => {
     if (isProcessing) {
@@ -266,6 +271,12 @@ export function ParticipantList({ handVisible, participantIdentityHand }: Partic
         },
         body: JSON.stringify(payload),
       });
+      
+      // Manually update the participant name in the list
+      setRenamedParticipants(prev => ({
+        ...prev,
+        [participant.identity]: renameTo.toString()
+      }));
     } catch (error) {
       console.error('Error toggling video:', error);
     } finally {
@@ -421,9 +432,146 @@ export function ParticipantList({ handVisible, participantIdentityHand }: Partic
     )
   }
 
+  const KickWarningModal: React.FC<DialogProps> = ({ isOpen, setIsOpen }) => {
+    const dialogStyle: React.CSSProperties = {
+      display: isOpen ? 'block' : 'none',
+      position: 'fixed',
+      top: '50%',
+      left: '50%',
+      transform: 'translate(-50%, -50%)',
+      backgroundColor: 'var(--lk-bg2)',
+      color: 'var(--lk-text)',
+      padding: '24px',
+      zIndex: 1010,
+      boxShadow: '0 4px 20px rgba(0, 0, 0, 0.4)',
+      borderRadius: '8px',
+      width: '400px',
+      textAlign: 'center'
+    };
+  
+    const overlayStyle: React.CSSProperties = {
+      display: isOpen ? 'block' : 'none',
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      width: '100%',
+      height: '100%',
+      backgroundColor: 'rgba(0, 0, 0, 0.6)',
+      zIndex: 1009
+    };
+
+    const buttonContainerStyle: React.CSSProperties = {
+      display: 'flex',
+      gap: '12px',
+      justifyContent: 'center',
+      marginTop: '20px'
+    };
+
+    const cancelButtonStyle: React.CSSProperties = {
+      padding: '10px 20px',
+      backgroundColor: 'transparent',
+      color: 'var(--lk-text)',
+      border: '1px solid var(--lk-border)',
+      borderRadius: '4px',
+      cursor: 'pointer',
+      fontSize: '14px'
+    };
+
+    const confirmButtonStyle: React.CSSProperties = {
+      padding: '10px 20px',
+      backgroundColor: '#dc3545',
+      color: '#fff',
+      border: 'none',
+      borderRadius: '4px',
+      cursor: 'pointer',
+      fontSize: '14px'
+    };
+
+    const warningIconStyle: React.CSSProperties = {
+      fontSize: '48px',
+      color: '#ffc107',
+      marginBottom: '16px'
+    };
+
+    const getParticipantDisplayName = () => {
+      if (!kickParticipantData) return '';
+      const originalName = kickParticipantData.identity.split('__')[0];
+      return renamedParticipants[kickParticipantData.identity] || originalName;
+    };
+    
+    return (
+      <>
+        <div>
+          <div style={overlayStyle} onClick={() => setIsOpen(false)}></div>
+
+          <div style={dialogStyle}>
+            <div style={warningIconStyle}>⚠️</div>
+            <h3 style={{ margin: '0 0 12px 0', color: 'var(--lk-text)' }}>
+              Remove Participant
+            </h3>
+            <p style={{ 
+              margin: '0 0 20px 0', 
+              color: 'var(--lk-text-secondary)', 
+              fontSize: '14px',
+              lineHeight: '1.5'
+            }}>
+              Are you sure you want to remove <strong>{getParticipantDisplayName()}</strong> from the meeting?
+            </p>
+            <p style={{ 
+              margin: '0 0 20px 0', 
+              color: '#ffc107', 
+              fontSize: '12px',
+              fontStyle: 'italic'
+            }}>
+              This action cannot be undone.
+            </p>
+            <div style={buttonContainerStyle}>
+              <button 
+                style={cancelButtonStyle} 
+                onClick={() => setIsOpen(false)}
+              >
+                Cancel
+              </button>
+              <button 
+                style={confirmButtonStyle} 
+                onClick={async () => {
+                  if (kickParticipantData) {
+                    // Bypass the isProcessing check since modal provides confirmation
+                    try {
+                      const url = new URL(CONN_DETAILS_ENDPOINT, window.location.origin);
+                      const payload = {
+                        roomName: room.name,
+                        participantIdentity: kickParticipantData.identity,
+                        action: 'remove',
+                      };
+
+                      await fetch(url.toString(), {
+                        method: 'POST',
+                        headers: {
+                          'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(payload),
+                      });
+                    } catch (error) {
+                      console.error('Error removing participant:', error);
+                    }
+                  }
+                  setIsOpen(false);
+                }}
+              >
+                Remove Participant
+              </button>
+            </div>
+          </div>
+        </div>
+      </>
+    )
+  }
+
   return (
     <ParentContext.Provider value={contextValue}>
       <RenameDialogue isOpen={isOpenDialogue} setIsOpen={setIsOpenDialogue}/>
+      <KickWarningModal isOpen={isKickModalOpen} setIsOpen={setIsKickModalOpen}/>
 
       {state.participantListVisible && (
         <div
@@ -463,10 +611,12 @@ export function ParticipantList({ handVisible, participantIdentityHand }: Partic
           {/* Participant count */}
           <div style={{ fontSize: '0.9em', color: 'var(--lk-text-secondary)', marginBottom: '8px' }}>
             {participants.filter((participant) => {
-              const displayName = participant.identity.split('__')[0];
+              const originalName = participant.identity.split('__')[0];
+              const displayName = renamedParticipants[participant.identity] || originalName;
               return displayName.toLowerCase().includes(searchTerm.toLowerCase());
             }).length} participant{participants.filter((participant) => {
-              const displayName = participant.identity.split('__')[0];
+              const originalName = participant.identity.split('__')[0];
+              const displayName = renamedParticipants[participant.identity] || originalName;
               return displayName.toLowerCase().includes(searchTerm.toLowerCase());
             }).length !== 1 ? 's' : ''} in list
           </div>
@@ -481,13 +631,33 @@ export function ParticipantList({ handVisible, participantIdentityHand }: Partic
           >
             {participants
               .filter((participant) => {
-                const displayName = participant.identity.split('__')[0];
+                const originalName = participant.identity.split('__')[0];
+                const displayName = renamedParticipants[participant.identity] || originalName;
                 return displayName.toLowerCase().includes(searchTerm.toLowerCase());
+              })
+              .sort((a, b) => {
+                // Sort participants with raised hands to the top
+                const aHasHandRaised = handVisible && (participantIdentityHand === a.identity);
+                const bHasHandRaised = handVisible && (participantIdentityHand === b.identity);
+                
+                if (aHasHandRaised && !bHasHandRaised) return -1;
+                if (!aHasHandRaised && bHasHandRaised) return 1;
+                
+                // If both have same hand status, sort by name
+                const aOriginalName = a.identity.split('__')[0];
+                const bOriginalName = b.identity.split('__')[0];
+                const aName = renamedParticipants[a.identity] || aOriginalName;
+                const bName = renamedParticipants[b.identity] || bOriginalName;
+                return aName.localeCompare(bName);
               })
               .map((participant) => {
               const metadata = participant.metadata ? JSON.parse(participant.metadata) : {};
               const role = metadata.role || 'participant';
               const isLocal = participant.isLocal;
+              
+              // Get the display name - use renamed name if available, otherwise use original
+              const originalName = participant.identity.split('__')[0];
+              const displayName = renamedParticipants[participant.identity] || originalName;
 
               return (
                 <div 
@@ -506,7 +676,7 @@ export function ParticipantList({ handVisible, participantIdentityHand }: Partic
                       fontWeight: isLocal ? 'bold' : 'normal',
                       color: isLocal ? 'white' : 'var(--lk-text)'
                     }}>
-                      {`${participant.identity.split('__')[0]} (${role})`}
+                      {`${displayName} (${role})`}
                     </span>
                     <button
                           disabled={true}
@@ -531,7 +701,10 @@ export function ParticipantList({ handVisible, participantIdentityHand }: Partic
                     <div style={{ display: 'flex', gap: '8px' }}>
                         <MultiTypePublishingToggle participant={participant} disabled={((role === "host") || isLocal || isProcessing)}/>
                         <button
-                          onClick={() => kickParticipant(participant as RemoteParticipant)}
+                          onClick={() => {
+                            setKickParticipantData(participant as RemoteParticipant);
+                            setIsKickModalOpen(true);
+                          }}
                           disabled={((role === "host") || isLocal || isProcessing)}
                           title='Remove participant'
                           style={{

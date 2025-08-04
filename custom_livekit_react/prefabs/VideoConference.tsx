@@ -37,6 +37,10 @@ export interface VideoConferenceProps extends React.HTMLAttributes<HTMLDivElemen
    * Array of participant identities who have raised their hand.
    */
   raisedHandIdentities?: string[];
+  /**
+   * Callback for hand state changes from the local participant
+   */
+  onHandStateChange?: (action: 'raise' | 'lower', identity: string) => void;
 }
 
 /**
@@ -63,6 +67,7 @@ export function VideoConference({
   chatMessageEncoder,
   SettingsComponent,
   raisedHandIdentities,
+  onHandStateChange,
   ...props
 }: VideoConferenceProps) {
   const [widgetState, setWidgetState] = React.useState<WidgetState>({
@@ -160,7 +165,7 @@ export function VideoConference({
                 </FocusLayoutContainer>
               </div>
             )}
-            <ControlBar controls={{ chat: true, settings: !!SettingsComponent, camera: false, microphone: false, screenShare: false }} />
+            <ControlBar controls={{ chat: true, settings: !!SettingsComponent, camera: false, microphone: false, screenShare: false }} onHandStateChange={onHandStateChange} />
           </div>
           <Chat
             style={{ display: widgetState.showChat ? 'grid' : 'none' }}

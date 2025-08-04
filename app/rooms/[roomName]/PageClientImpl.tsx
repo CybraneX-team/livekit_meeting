@@ -175,7 +175,7 @@ function VideoConferenceComponent(props: {
       keyProvider
         .setKey(decodePassphrase(e2eePassphrase))
         .then(() => {
-          room.setE2EEEnabled(true).catch((e) => {
+          room.setE2EEEnabled(true).catch((e: Error) => {
             if (e instanceof DeviceUnsupportedError) {
               alert(
                 `You're trying to join an encrypted meeting, but your browser does not support it. Please update it to the latest version and try again.`,
@@ -235,16 +235,16 @@ function VideoConferenceComponent(props: {
           props.connectionDetails.participantToken,
           connectOptions,
         )
-        .catch((error) => {
+        .catch((error: Error) => {
           handleError(error);
         });
       if (props.userChoices.videoEnabled) {
-        room.localParticipant.setCameraEnabled(true).catch((error) => {
+        room.localParticipant.setCameraEnabled(true).catch((error: Error) => {
           handleError(error);
         });
       }
       if (props.userChoices.audioEnabled) {
-        room.localParticipant.setMicrophoneEnabled(true).catch((error) => {
+        room.localParticipant.setMicrophoneEnabled(true).catch((error: Error) => {
           handleError(error);
         });
       }
@@ -278,6 +278,15 @@ function VideoConferenceComponent(props: {
   const [participantIdentityHand, setParticipantIdentityHand] = useState("")
   const [raisedHandIdentities, setRaisedHandIdentities] = useState<string[]>([]);
 
+  // Callback to handle local participant hand state changes
+  const handleLocalHandStateChange = React.useCallback((action: 'raise' | 'lower', identity: string) => {
+    if (action === 'raise') {
+      setRaisedHandIdentities(prev => prev.includes(identity) ? prev : [...prev, identity]);
+    } else {
+      setRaisedHandIdentities(prev => prev.filter(id => id !== identity));
+    }
+  }, []);
+
   React.useEffect(() => {
     const handleData = (payload: Uint8Array, participant?: RemoteParticipant) => {
       try {
@@ -286,13 +295,13 @@ function VideoConferenceComponent(props: {
         
         if (data.type === 'notify') {
           if (data.action === 'raise') {
-            // setNotify(true)
-            // setNotifyText(`${data.name} rasied hand!`)
+            setNotify(true)
+            setNotifyText(`${data.name} rasied hand!`)
             setHandVisible(true)
             setParticipantIdentityHand(data.identity)
             setRaisedHandIdentities(prev => prev.includes(data.identity) ? prev : [...prev, data.identity]);
           } else if(data.action === 'lower') {
-            // setNotify(false)
+            setNotify(false)
             setHandVisible(false)
             setParticipantIdentityHand("")
             setRaisedHandIdentities(prev => prev.filter(id => id !== data.identity));
@@ -319,6 +328,7 @@ function VideoConferenceComponent(props: {
             chatMessageFormatter={formatChatMessageLinks}
             SettingsComponent={SHOW_SETTINGS_MENU ? SettingsMenu : undefined}
             raisedHandIdentities={raisedHandIdentities}
+            onHandStateChange={handleLocalHandStateChange}
           />
         <MassControl/>
         <ParticipantList handVisible={handVisible} participantIdentityHand={participantIdentityHand} />

@@ -2,7 +2,11 @@ import React, { useState } from 'react';
 import { useLocalParticipant, useRoomContext } from '../../index';
 import { FaHandPaper } from "react-icons/fa";
 
-export const RaiseHandButton = () => {
+interface RaiseHandButtonProps {
+  onHandStateChange?: (action: 'raise' | 'lower', identity: string) => void;
+}
+
+export const RaiseHandButton = ({ onHandStateChange }: RaiseHandButtonProps) => {
   const room = useRoomContext();
   const { localParticipant } = useLocalParticipant();
   const [handState, setHandState] = useState('lower');
@@ -18,9 +22,13 @@ export const RaiseHandButton = () => {
     if(handState === "lower") {
       data.action = "raise"
       setHandState("raise")
+      // Immediately update the global state for local participant
+      onHandStateChange?.("raise", localParticipant.identity);
     } else {
       data.action = "lower"
       setHandState("lower")
+      // Immediately update the global state for local participant
+      onHandStateChange?.("lower", localParticipant.identity);
     }
     
     await room.localParticipant.publishData(

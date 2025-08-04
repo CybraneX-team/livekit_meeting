@@ -47,6 +47,10 @@ export interface ControlBarProps extends React.HTMLAttributes<HTMLDivElement> {
    * @alpha
    */
   saveUserChoices?: boolean;
+  /**
+   * Callback for hand state changes from the local participant
+   */
+  onHandStateChange?: (action: 'raise' | 'lower', identity: string) => void;
 }
 
 /**
@@ -70,6 +74,7 @@ export function ControlBar({
   controls,
   saveUserChoices = true,
   onDeviceError,
+  onHandStateChange,
   ...props
 }: ControlBarProps) {
   const [isChatOpen, setIsChatOpen] = React.useState(false);
@@ -327,7 +332,7 @@ export function ControlBar({
           {'Participant'}
         </ParticipantButton>
       )}
-      <RaiseHandButton />
+      <RaiseHandButton onHandStateChange={onHandStateChange} />
       {isHost && (
         <MassControlButton>
           {showIcon && <IoPeople />}

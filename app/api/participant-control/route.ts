@@ -2,9 +2,12 @@ import { RoomServiceClient } from 'livekit-server-sdk';
 import { Track } from 'livekit-client';
 import { NextResponse } from 'next/server';
 import { kickUser } from '@/lib/blackList';
+import { cookies } from 'next/headers';
 
 export async function POST(req: Request) {
   try {
+    const cookieStore = await cookies();
+    const existingToken = cookieStore.get('accessToken')?.value;
     const body = await req.json();
     const { roomName, participantIdentity, action } = body;
     console.log('Received control request:', { roomName, participantIdentity, action });
@@ -122,7 +125,7 @@ export async function POST(req: Request) {
       } else if (action === 'remove') {
         console.log('Removing participant:', participantIdentity);
         await roomService.removeParticipant(roomName, participantIdentity);
-        kickUser(participantIdentity)
+        kickUser(existingToken+"")
       } else if (action === 'rename') {
         const { newIdentity } = body;
         if (!newIdentity) {
