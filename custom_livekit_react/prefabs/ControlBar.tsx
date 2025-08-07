@@ -246,7 +246,8 @@ export function ControlBar({
     <div 
       style={{
         justifyContent: "start",
-        overflowX: "scroll"
+        overflowX: "scroll",
+        overflowY: "hidden"
       }}
 
       {...htmlProps}

@@ -6,7 +6,6 @@ interface RecordingState {
   isRecording: boolean;
   isProcessing: boolean;
   isUploading: boolean;
-  progress: number;
   error: string | null;
   uploadId: string | null;
   recordingId: string | null;
@@ -14,7 +13,6 @@ interface RecordingState {
   totalParts: number;
   uploadedParts: number;
   totalSize: number;
-  estimatedTimeRemaining: number;
 }
 
 // Upload configuration
@@ -43,15 +41,13 @@ export function useRecordButton() {
     isRecording: false,
     isProcessing: false,
     isUploading: false,
-    progress: 0,
     error: null,
     uploadId: null,
     recordingId: null,
     recordingName: '',
     totalParts: 0,
     uploadedParts: 0,
-    totalSize: 0,
-    estimatedTimeRemaining: 0
+    totalSize: 0
   });
 
   // Refs for recording session
@@ -70,6 +66,11 @@ export function useRecordButton() {
   const { localParticipant } = useLocalParticipant();
   const { identity: userId } = useParticipantInfo({ participant: localParticipant });
   const { name: roomName } = useRoomInfo();
+
+  // Helper to show alerts
+  const showAlert = useCallback((message: string, type: 'error' | 'success' | 'info' = 'info') => {
+    alert(`${type.toUpperCase()}: ${message}`);
+  }, []);
 
   // Helper to broadcast recording status to all participants
   const broadcastRecordingStatus = useCallback(async (action: 'start' | 'stop' | 'error') => {
@@ -166,9 +167,10 @@ export function useRecordButton() {
         isProcessing: false, 
         error: error.message || 'Failed to initialize upload' 
       }));
+      showAlert(error.message || 'Failed to initialize upload', 'error');
       return false;
     }
-  }, []);
+  }, [showAlert]);
 
   // Helper to upload chunk with retry logic
   const uploadChunkToS3 = useCallback(async (chunk: Blob, partNumber: number): Promise<boolean> => {
@@ -210,13 +212,11 @@ export function useRecordButton() {
           ETag: cleanEtag
         });
 
-        // Update progress
+        // Update progress (without visual indicators)
         setRecordingState(prev => ({
           ...prev,
           uploadedParts: prev.uploadedParts + 1,
-          totalSize: prev.totalSize + chunk.size,
-          progress: Math.min(((prev.uploadedParts + 1) / prev.totalParts) * 100, 95),
-          estimatedTimeRemaining: Math.max(0, (prev.totalParts - (prev.uploadedParts + 1)) * 30)
+          totalSize: prev.totalSize + chunk.size
         }));
 
         console.log('[DEBUG] Successfully uploaded part:', { partNumber, etag: cleanEtag, size: (chunk.size / (1024 * 1024)).toFixed(2) + ' MB' });
@@ -248,7 +248,7 @@ export function useRecordButton() {
         return false;
       }
 
-      setRecordingState(prev => ({ ...prev, isUploading: true, progress: 95 }));
+      setRecordingState(prev => ({ ...prev, isUploading: true }));
 
       // Sort parts by part number to ensure ascending order
       const sortedParts = [...uploadedPartsRef.current].sort((a, b) => a.PartNumber - b.PartNumber);
@@ -289,11 +289,11 @@ export function useRecordButton() {
 
       setRecordingState(prev => ({ 
         ...prev, 
-        isUploading: false, 
-        progress: 100,
+        isUploading: false,
         error: null
       }));
 
+      showAlert('Recording saved successfully!', 'success');
       return true;
     } catch (error: any) {
       console.error('[DEBUG] Error completing multipart upload:', error);
@@ -302,9 +302,10 @@ export function useRecordButton() {
         isUploading: false, 
         error: error.message || 'Failed to complete upload' 
       }));
+      showAlert(error.message || 'Failed to complete upload', 'error');
       return false;
     }
-  }, [recordingState.recordingName, recordingState.totalSize]);
+  }, [recordingState.recordingName, recordingState.totalSize, showAlert]);
 
   // Helper to abort multipart upload
   const abortMultipartUpload = useCallback(async (): Promise<void> => {
@@ -349,7 +350,6 @@ export function useRecordButton() {
         ...prev, 
         error: null, 
         isProcessing: true,
-        progress: 0,
         uploadedParts: 0,
         totalSize: 0
       }));
@@ -433,6 +433,7 @@ export function useRecordButton() {
               error: 'Upload failed. Recording stopped.',
               isRecording: false 
             }));
+            showAlert('Upload failed. Recording stopped.', 'error');
             if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
               mediaRecorderRef.current.stop();
             }
@@ -483,8 +484,7 @@ export function useRecordButton() {
         isRecording: true, 
         isProcessing: false,
         recordingId,
-        recordingName,
-        progress: 0
+        recordingName
       }));
       
       // Broadcast recording start
@@ -497,8 +497,9 @@ export function useRecordButton() {
         isProcessing: false, 
         error: err.message || 'Failed to start recording' 
       }));
+      showAlert(err.message || 'Failed to start recording', 'error');
     }
-  }, [userId, roomName, initializeMultipartUpload, uploadChunkToS3, completeMultipartUpload, abortMultipartUpload, broadcastRecordingStatus]);
+  }, [userId, roomName, initializeMultipartUpload, uploadChunkToS3, completeMultipartUpload, abortMultipartUpload, broadcastRecordingStatus, showAlert]);
 
   // Stop recording
   const stopRecording = useCallback(async () => {
@@ -537,10 +538,11 @@ export function useRecordButton() {
         ...prev, 
         error: err.message || 'Failed to toggle recording' 
       }));
+      showAlert(err.message || 'Failed to toggle recording', 'error');
     }
-  }, [recordingState.isRecording, recordingState.isProcessing, startRecording, stopRecording]);
+  }, [recordingState.isRecording, recordingState.isProcessing, startRecording, stopRecording, showAlert]);
 
-  // Button props
+  // Button props - optimized for navbar
   const buttonProps = {
     onClick: toggleRecording,
     disabled: recordingState.isProcessing || recordingState.isUploading,
@@ -551,82 +553,35 @@ export function useRecordButton() {
       display: 'flex',
       alignItems: 'center',
       gap: '8px',
-      position: 'relative' as const
+      padding: '8px 16px',
+      border: 'none',
+      cursor: recordingState.isProcessing || recordingState.isUploading ? 'not-allowed' : 'pointer',
+      opacity: recordingState.isProcessing || recordingState.isUploading ? 0.6 : 1,
+      transition: 'all 0.2s ease',
+      fontSize: '14px',
+      fontWeight: '500'
     }
   };
 
   return { 
     buttonProps, 
-    recordingState,
-    clearError: () => setRecordingState(prev => ({ ...prev, error: null }))
+    recordingState
   };
 }
 
 export function RecordButton() {
-  const { buttonProps, recordingState, clearError } = useRecordButton();
+  const { buttonProps, recordingState } = useRecordButton();
 
   return (
-    <div>
-      <button {...buttonProps}>
-        <span style={{ fontSize: '1.2em', color: recordingState.isRecording ? '#ff1744' : 'inherit' }}>
-          {recordingState.isRecording ? '⏺️' : '⏺️'}
-        </span>
-        {recordingState.isRecording ? 'Stop Recording' : 'Start Recording'}
-        
-        {/* Progress indicator */}
-        {recordingState.isUploading && (
-          <div style={{
-            position: 'absolute',
-            bottom: 0,
-            left: 0,
-            height: '2px',
-            background: 'var(--lk-primary)',
-            width: `${recordingState.progress}%`,
-            transition: 'width 0.3s ease'
-          }} />
-        )}
-      </button>
-      
-      {/* Progress display */}
-      {recordingState.isUploading && recordingState.progress > 0 && (
-        <div style={{ 
-          marginTop: '0.5rem', 
-          fontSize: '0.875rem', 
-          color: 'var(--lk-text-secondary)' 
-        }}>
-          Uploading: {Math.round(recordingState.progress)}% 
-          {recordingState.estimatedTimeRemaining > 0 && 
-            ` (${Math.round(recordingState.estimatedTimeRemaining)}s remaining)`
-          }
-        </div>
-      )}
-      
-      {/* Error display */}
-      {recordingState.error && (
-        <div style={{ 
-          color: '#ef4444', 
-          marginTop: '0.5rem', 
-          fontWeight: 500,
-          display: 'flex',
-          alignItems: 'center',
-          gap: '0.5rem'
-        }}>
-          <span>⚠️</span>
-          <span>{recordingState.error}</span>
-          <button 
-            onClick={clearError}
-            style={{
-              background: 'none',
-              border: 'none',
-              color: '#ef4444',
-              cursor: 'pointer',
-              fontSize: '1.2em'
-            }}
-          >
-            ×
-          </button>
-        </div>
-      )}
-    </div>
+    <button {...buttonProps}>
+      <span style={{ 
+        fontSize: '1.2em', 
+        color: recordingState.isRecording ? '#ff1744' : 'inherit',
+        filter: recordingState.isProcessing || recordingState.isUploading ? 'grayscale(50%)' : 'none'
+      }}>
+        {recordingState.isRecording ? '⏹️' : '⏺️'}
+      </span>
+      {recordingState.isRecording ? 'Stop Recording' : 'Start Recording'}
+    </button>
   );
 } 
