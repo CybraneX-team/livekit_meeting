@@ -117,7 +117,7 @@ export function useRecordButton() {
           timestamp,
           recordingId,
           recordingName,
-          estimatedParts: 20,
+          estimatedParts: 60,
           quality
         })
       });
