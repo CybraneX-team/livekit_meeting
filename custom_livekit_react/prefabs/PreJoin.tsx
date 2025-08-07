@@ -349,6 +349,9 @@ export function PreJoin({
 
   useWarnAboutMissingStyles();
 
+  // Check for permission warnings
+  const hasPermissionWarning = (audioEnabled && !audioTrack) || (videoEnabled && !videoTrack);
+
   return (
     <div className="lk-prejoin" {...htmlProps}>
       <div className="lk-video-container">
@@ -361,6 +364,20 @@ export function PreJoin({
           </div>
         )}
       </div>
+      
+      {hasPermissionWarning && (
+        <div style={{
+          background: '#fff3cd',
+          border: '1px solid #ffeaa7',
+          borderRadius: '4px',
+          padding: '8px 12px',
+          margin: '8px 0',
+          fontSize: '14px',
+          color: '#856404'
+        }}>
+          ⚠️ Please allow camera and microphone permissions to use audio/video features
+        </div>
+      )}
       <div className="lk-button-group-container">
         <div className="lk-button-group audio">
           <TrackToggle
