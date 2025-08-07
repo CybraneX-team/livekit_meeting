@@ -338,38 +338,6 @@ export default function ParticipantLoginPage() {
         </motion.form>
 
         {/* Demo Credentials */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.5 }}
-          style={{ 
-            marginTop: '2rem',
-            padding: '1.5rem',
-            backgroundColor: 'rgba(51, 65, 85, 0.3)',
-            borderRadius: '0.75rem',
-            border: '1px solid rgba(51, 65, 85, 0.5)'
-          }}
-        >
-          <h3 style={{ 
-            fontSize: '1rem', 
-            fontWeight: '600', 
-            margin: '0 0 1rem 0',
-            color: '#f8fafc'
-          }}>
-            Demo Credentials
-          </h3>
-          <div style={{ fontSize: '0.875rem', color: '#94a3b8' }}>
-            <p style={{ margin: '0.5rem 0' }}>
-              <strong>John Doe:</strong> john@example.com / password123
-            </p>
-            <p style={{ margin: '0.5rem 0' }}>
-              <strong>Jane Smith:</strong> jane@example.com / password456
-            </p>
-            <p style={{ margin: '0.5rem 0' }}>
-              <strong>Bob Wilson:</strong> bob@example.com / password789
-            </p>
-          </div>
-        </motion.div>
 
         {/* Back to Dashboard Link */}
         <motion.div
