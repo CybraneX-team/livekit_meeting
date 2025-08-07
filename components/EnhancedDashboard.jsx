@@ -19,7 +19,8 @@ import {
   FaDownload,
   FaEllipsisH,
   FaTimes,
-  FaMicrophone
+  FaMicrophone,
+  FaUser
 } from 'react-icons/fa';
 
 // Animation variants
@@ -384,6 +385,7 @@ const EnhancedDashboard = () => {
                   <p>Start an instant meeting</p>
                 </div>
               </motion.div>
+              
               
               {/* Join Meeting card */}
               {/* <motion.div 
