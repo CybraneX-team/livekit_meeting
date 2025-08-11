@@ -64,18 +64,25 @@ export async function POST(req: Request) {
     if(action === 'mark-attendance') {
       let metadata = body.metadata;
 
-      try {
-        metadata = JSON.parse(body.metadata);
-      } catch  {
-        if(metadata === "") {
-          metadata = {
-            attendance: {
-              participants: [],
-              timeStamp: []
-            }
-          }
-        } 
-      }
+      metadata = {
+        attendance: {
+          participants: [],
+          timeStamp: []
+        },
+        ...JSON.parse(body.metadata || '{}')
+      };
+      
+
+      // catch  {
+      //   if(metadata === "") {
+      //     metadata = {
+      //       attendance: {
+      //         participants: [],
+      //         timeStamp: []
+      //       }
+      //     }
+      //   } 
+      // }
 
       metadata.attendance.participants.push(participantIdentity);
       metadata.attendance.timeStamp.push(new Date())
@@ -83,6 +90,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: true }, { status: 200 });
     }
   } catch(err) {
+    console.error('Error marking attendance:', err);
     return NextResponse.json({ success: false }, { status: 500 });
   }
 
@@ -203,6 +211,20 @@ export async function POST(req: Request) {
           };
           await roomService.updateParticipant(roomName, participant.identity, undefined, permissions);
         }));
+
+        const rooms = await roomService.listRooms();
+
+        for(let i = 0; i < rooms.length; i++) {
+          if(rooms[i].name === roomName) {
+            const parse = JSON.parse(rooms[i].metadata || '{}');
+
+            await roomService.updateRoomMetadata(rooms[i].name, JSON.stringify({
+              ...parse,
+              massTogglePublishing: parse.massTogglePublishing ? false : true
+            }))
+          }
+        }
+
       } else if (action === 'mass-mute-audio' || action === 'mass-unmute-audio') {
         console.log(`${action} for all participants in room:`, roomName);
         const participants = await roomService.listParticipants(roomName);

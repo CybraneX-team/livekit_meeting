@@ -97,14 +97,39 @@ const createParticipantToken = async (userInfo: AccessTokenOptions, roomName: st
     throw new LiveKitAPIError('API credentials not configured');
   }
 
+  if (!process.env.LIVEKIT_URL || !process.env.LIVEKIT_API_KEY || !process.env.LIVEKIT_API_SECRET) {
+    console.error('Missing LiveKit credentials');
+    throw new LiveKitAPIError('API credentials not configured');
+  }
+  
+  const roomService = new RoomServiceClient(
+    process.env.LIVEKIT_URL,
+    process.env.LIVEKIT_API_KEY,
+    process.env.LIVEKIT_API_SECRET
+  );
+
+  const rooms = await roomService.listRooms();
+
+  let bool = true;
+
+  if(JSON.parse(userInfo.metadata || '{}').role === 'participant') {
+    for(let i = 0; i < rooms.length; i++) {
+      if(rooms[i].name === roomName) {
+        const parse = JSON.parse(rooms[i].metadata || '{}');
+
+        bool = parse.massTogglePublishing;
+      }
+    }
+  }
+
   const accessToken = new AccessToken(API_KEY, API_SECRET, userInfo);
   accessToken.ttl = `${JWT_EXPIRY_HOURS}h`;
   
   const grant: VideoGrant = {
     room: roomName,
     roomJoin: true,
-    canPublish: true,
-    canPublishData: true,
+    canPublish: bool,
+    canPublishData: bool,
     canSubscribe: true,
   };
   

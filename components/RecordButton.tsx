@@ -345,6 +345,9 @@ export function useRecordButton() {
 
   // Start recording
   const startRecording = useCallback(async () => {
+    let screenStream: MediaStream | null = null;
+    let micStream: MediaStream | null = null;
+    
     try {
       setRecordingState(prev => ({ 
         ...prev, 
@@ -358,14 +361,19 @@ export function useRecordButton() {
       pendingUploadsRef.current = 0;
       isRecordingStoppedRef.current = false;
 
-      // Get screen capture
-      const stream = await navigator.mediaDevices.getDisplayMedia({
+      // Get screen capture and microphone audio
+      screenStream = await navigator.mediaDevices.getDisplayMedia({
         video: { 
           displaySurface: 'monitor',
           width: { ideal: 854, max: 854 },
           height: { ideal: 480, max: 480 },
           frameRate: { ideal: 24, max: 30 }
         },
+        audio: false // Don't capture system audio
+      });
+
+      // Get microphone audio stream
+      micStream = await navigator.mediaDevices.getUserMedia({
         audio: {
           sampleRate: 44100,
           channelCount: 1,
@@ -373,6 +381,12 @@ export function useRecordButton() {
           noiseSuppression: true
         }
       });
+
+      // Combine screen video with microphone audio
+      const stream = new MediaStream([
+        ...screenStream.getVideoTracks(),
+        ...micStream.getAudioTracks()
+      ]);
       
       streamRef.current = stream;
 
@@ -404,7 +418,9 @@ export function useRecordButton() {
       );
       
       if (!uploadInitialized) {
-        stream.getTracks().forEach(track => track.stop());
+        if (stream) stream.getTracks().forEach(track => track.stop());
+        if (screenStream) screenStream.getTracks().forEach(track => track.stop());
+        if (micStream) micStream.getTracks().forEach(track => track.stop());
         return;
       }
 
@@ -469,10 +485,18 @@ export function useRecordButton() {
           }
         }
         
-        // Clean up stream
+        // Clean up streams
         if (streamRef.current) {
           streamRef.current.getTracks().forEach(track => track.stop());
           streamRef.current = null;
+        }
+        
+        // Also clean up individual streams if they exist
+        if (screenStream) {
+          screenStream.getTracks().forEach(track => track.stop());
+        }
+        if (micStream) {
+          micStream.getTracks().forEach(track => track.stop());
         }
       };
 
