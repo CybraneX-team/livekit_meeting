@@ -27,6 +27,7 @@ export function MassControl() {
     }
 
     const handleMetadataChange = () => {
+      console.log("Metadata changed", room.localParticipant.metadata)
       const { role } = JSON.parse(room.localParticipant.metadata ?? "")
       setHost(role === "host" || role === "co-host")
     }

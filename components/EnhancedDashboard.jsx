@@ -20,7 +20,10 @@ import {
   FaEllipsisH,
   FaTimes,
   FaMicrophone,
-  FaUser
+  FaUser,
+  FaUsers,
+  FaClock,
+  FaCalendar
 } from 'react-icons/fa';
 
 // Animation variants
@@ -82,6 +85,75 @@ const EnhancedDashboard = () => {
     hostName: '',
     timestamp: null
   });
+
+  // Demo data for meetings
+  const [demoMeetings, setDemoMeetings] = useState([
+    // Upcoming meetings
+    {
+      id: 'demo-upcoming-1',
+      title: 'Weekly Team Standup',
+      date: new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString(), // 2 hours from now
+      participants: 8,
+      type: 'upcoming',
+      description: 'Daily standup meeting for the development team',
+      host: 'John Doe',
+      duration: '30 min'
+    },
+    {
+      id: 'demo-upcoming-2',
+      title: 'Project Review Meeting',
+      date: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // 1 day from now
+      participants: 12,
+      type: 'upcoming',
+      description: 'Quarterly project review with stakeholders',
+      host: 'Sarah Johnson',
+      duration: '1 hour'
+    },
+    {
+      id: 'demo-upcoming-3',
+      title: 'Client Presentation',
+      date: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(), // 3 days from now
+      participants: 6,
+      type: 'upcoming',
+      description: 'Product demo for potential client',
+      host: 'Mike Chen',
+      duration: '45 min'
+    },
+    // Past meetings
+    {
+      id: 'demo-past-1',
+      title: 'Design Sprint Planning',
+      date: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(), // 2 days ago
+      participants: 10,
+      type: 'past',
+      description: 'Planning session for upcoming design sprint',
+      host: 'Emily Rodriguez',
+      duration: '2 hours',
+      recording: true
+    },
+    {
+      id: 'demo-past-2',
+      title: 'Code Review Session',
+      date: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(), // 5 days ago
+      participants: 5,
+      type: 'past',
+      description: 'Peer code review for authentication module',
+      host: 'Alex Thompson',
+      duration: '1.5 hours',
+      recording: true
+    },
+    {
+      id: 'demo-past-3',
+      title: 'All-Hands Meeting',
+      date: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(), // 1 week ago
+      participants: 25,
+      type: 'past',
+      description: 'Company-wide monthly update meeting',
+      host: 'CEO',
+      duration: '1 hour',
+      recording: true
+    }
+  ]);
   
   // Set current time
   useEffect(() => {
@@ -321,6 +393,16 @@ const EnhancedDashboard = () => {
           <span>Recordings</span>
         </motion.div>
         
+        <motion.div 
+          className={`sidebar-item ${activeSection === 'meetings' ? 'active' : ''}`}
+          onClick={() => handleNavigation('meetings')}
+          whileHover={{ x: 5 }}
+          whileTap={{ scale: 0.95 }}
+        >
+          <FaUsers size={24} className="sidebar-icon" />
+          <span>Meetings</span>
+        </motion.div>
+
         {/* <motion.div 
           className={`sidebar-item ${activeSection === 'personal' ? 'active' : ''}`}
           onClick={() => openPersonalRoom()}
@@ -587,6 +669,173 @@ const EnhancedDashboard = () => {
               exit="exit"
             >
               <RecordingsList />
+            </motion.div>
+          )}
+
+          {/* Meetings Section */}
+          {activeSection === 'meetings' && (
+            <motion.div 
+              className="section-content"
+              key="meetings"
+              variants={pageVariants}
+              initial="initial"
+              animate="animate"
+              exit="exit"
+            >
+              <motion.h2 
+                className="section-title"
+                variants={itemVariants}
+              >
+                Meetings Overview
+              </motion.h2>
+              
+              {/* Upcoming Meetings */}
+              <motion.div 
+                className="meetings-subsection"
+                variants={itemVariants}
+              >
+                <div className="subsection-header">
+                  <FaCalendar className="subsection-icon" />
+                  <h3>Upcoming Meetings</h3>
+                  <span className="meeting-count">
+                    {demoMeetings.filter(m => m.type === 'upcoming').length} meetings
+                  </span>
+                </div>
+                
+                <div className="meeting-list">
+                  {demoMeetings
+                    .filter(meeting => meeting.type === 'upcoming')
+                    .map((meeting, index) => (
+                      <motion.div 
+                        key={meeting.id} 
+                        className="meeting-item upcoming"
+                        variants={itemVariants}
+                        custom={index}
+                        whileHover={{ scale: 1.02, backgroundColor: 'rgba(59, 130, 246, 0.1)' }}
+                      >
+                        <div className="meeting-details">
+                          <div className="meeting-header">
+                            <h4>{meeting.title}</h4>
+                            <span className="meeting-time">
+                              {formatDate(meeting.date)}
+                            </span>
+                          </div>
+                          <p className="meeting-description">{meeting.description}</p>
+                          <div className="meeting-meta">
+                            <span className="meeting-host">
+                              <FaUser className="meta-icon" />
+                              {meeting.host}
+                            </span>
+                            <span className="meeting-duration">
+                              <FaClock className="meta-icon" />
+                              {meeting.duration}
+                            </span>
+                            <span className="meeting-participants">
+                              <FaUsers className="meta-icon" />
+                              {meeting.participants} participants
+                            </span>
+                          </div>
+                        </div>
+                        <div className="meeting-actions">
+                          <motion.button 
+                            className="join-button"
+                            onClick={() => router.push(`/rooms/${meeting.id}`)}
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                          >
+                            Join
+                          </motion.button>
+                        </div>
+                      </motion.div>
+                    ))}
+                </div>
+              </motion.div>
+              
+              {/* Past Meetings */}
+              <motion.div 
+                className="meetings-subsection"
+                variants={itemVariants}
+              >
+                <div className="subsection-header">
+                  <FaHistory className="subsection-icon" />
+                  <h3>Past Meetings</h3>
+                  <span className="meeting-count">
+                    {demoMeetings.filter(m => m.type === 'past').length} meetings
+                  </span>
+                </div>
+                
+                <div className="meeting-list">
+                  {demoMeetings
+                    .filter(meeting => meeting.type === 'past')
+                    .map((meeting, index) => (
+                      <motion.div 
+                        key={meeting.id} 
+                        className="meeting-item past"
+                        variants={itemVariants}
+                        custom={index}
+                        whileHover={{ scale: 1.02, backgroundColor: 'rgba(100, 116, 139, 0.1)' }}
+                      >
+                        <div className="meeting-details">
+                          <div className="meeting-header">
+                            <h4>{meeting.title}</h4>
+                            <span className="meeting-time">
+                              {formatDate(meeting.date)}
+                            </span>
+                          </div>
+                          <p className="meeting-description">{meeting.description}</p>
+                          <div className="meeting-meta">
+                            <span className="meeting-host">
+                              <FaUser className="meta-icon" />
+                              {meeting.host}
+                            </span>
+                            <span className="meeting-duration">
+                              <FaClock className="meta-icon" />
+                              {meeting.duration}
+                            </span>
+                            <span className="meeting-participants">
+                              <FaUsers className="meta-icon" />
+                              {meeting.participants} participants
+                            </span>
+                            {meeting.recording && (
+                              <span className="recording-badge">
+                                <FaVideo className="meta-icon" />
+                                Recorded
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        <div className="meeting-actions">
+                          {meeting.recording ? (
+                            <motion.button 
+                              className="secondary-button"
+                              whileHover={{ scale: 1.05 }}
+                              whileTap={{ scale: 0.95 }}
+                              onClick={() => handleReplayMeeting(meeting.id)}
+                            >
+                              <FaPlay className="mr-2" /> Replay
+                            </motion.button>
+                          ) : (
+                            <motion.button 
+                              className="secondary-button disabled"
+                              disabled
+                            >
+                              <FaPlay className="mr-2" /> No Recording
+                            </motion.button>
+                          )}
+                        </div>
+                      </motion.div>
+                    ))}
+                </div>
+              </motion.div>
+              
+              <motion.button 
+                className="floating-action-button"
+                onClick={handleScheduleMeeting}
+                whileHover={{ scale: 1.1, boxShadow: "0 10px 25px rgba(59, 130, 246, 0.5)" }}
+                whileTap={{ scale: 0.9 }}
+              >
+                <FaPlus />
+              </motion.button>
             </motion.div>
           )}
         </AnimatePresence>

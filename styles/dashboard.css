@@ -300,10 +300,25 @@
   background-color: rgba(51, 65, 85, 0.7);
 }
 
+.meeting-item.upcoming {
+  border-left: 4px solid #3b82f6;
+}
+
+.meeting-item.past {
+  border-left: 4px solid #64748b;
+}
+
 .meeting-details h3, .recording-details h3 {
   font-size: 1.125rem;
   font-weight: 600;
   margin: 0 0 0.5rem 0;
+}
+
+.meeting-details h4 {
+  font-size: 1.125rem;
+  font-weight: 600;
+  margin: 0;
+  color: #f8fafc;
 }
 
 .meeting-details p, .recording-details p {
@@ -312,11 +327,20 @@
   margin: 0 0 0.5rem 0;
 }
 
+.meeting-description {
+  font-size: 0.875rem;
+  color: #94a3b8;
+  margin: 0.5rem 0;
+  line-height: 1.4;
+}
+
 .meeting-meta, .recording-meta {
   display: flex;
   gap: 1rem;
   font-size: 0.75rem;
   color: #64748b;
+  flex-wrap: wrap;
+  align-items: center;
 }
 
 .meeting-participants {
@@ -325,6 +349,124 @@
   background-color: rgba(51, 65, 85, 0.7);
   padding: 0.25rem 0.5rem;
   border-radius: 1rem;
+}
+
+/* Meetings Section Styles */
+.meetings-subsection {
+  margin-bottom: 2.5rem;
+}
+
+.subsection-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid rgba(51, 65, 85, 0.3);
+}
+
+.subsection-header h3 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin: 0;
+  color: #f8fafc;
+}
+
+.subsection-icon {
+  font-size: 1.25rem;
+  color: #60a5fa;
+}
+
+.meeting-count {
+  font-size: 0.875rem;
+  color: #94a3b8;
+  background-color: rgba(51, 65, 85, 0.7);
+  padding: 0.25rem 0.75rem;
+  border-radius: 1rem;
+  margin-left: auto;
+}
+
+.meeting-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 0.5rem;
+  width: 100%;
+}
+
+.meeting-time {
+  font-size: 0.875rem;
+  color: #60a5fa;
+  font-weight: 500;
+  background-color: rgba(96, 165, 250, 0.1);
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.5rem;
+  white-space: nowrap;
+}
+
+.meta-icon {
+  font-size: 0.75rem;
+  margin-right: 0.25rem;
+  color: #64748b;
+}
+
+.meeting-host, .meeting-duration, .meeting-participants {
+  display: flex;
+  align-items: center;
+  font-size: 0.75rem;
+  color: #64748b;
+  background-color: rgba(51, 65, 85, 0.5);
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.5rem;
+}
+
+.recording-badge {
+  display: flex;
+  align-items: center;
+  font-size: 0.75rem;
+  color: #10b981;
+  background-color: rgba(16, 185, 129, 0.1);
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.5rem;
+}
+
+.recording-badge .meta-icon {
+  color: #10b981;
+}
+
+/* Enhanced meeting item styles */
+.meeting-item {
+  position: relative;
+  overflow: hidden;
+}
+
+.meeting-item::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 100%;
+  background: linear-gradient(to bottom, #3b82f6, #1d4ed8);
+  transition: all 0.3s ease;
+}
+
+.meeting-item.past::before {
+  background: linear-gradient(to bottom, #64748b, #475569);
+}
+
+.meeting-item:hover::before {
+  width: 6px;
+}
+
+.meeting-item.upcoming:hover {
+  border-color: #60a5fa;
+  box-shadow: 0 8px 25px rgba(59, 130, 246, 0.15);
+}
+
+.meeting-item.past:hover {
+  border-color: #94a3b8;
+  box-shadow: 0 8px 25px rgba(100, 116, 139, 0.15);
 }
 
 /* Recording Styles */
@@ -1050,5 +1192,44 @@
   .recording-text,
   .recording-host {
     font-size: 0.75rem;
+  }
+}
+
+/* Disabled button styles */
+.secondary-button.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background-color: rgba(51, 65, 85, 0.3);
+}
+
+.secondary-button.disabled:hover {
+  background-color: rgba(51, 65, 85, 0.3);
+  transform: none;
+}
+
+/* Responsive adjustments for meetings section */
+@media (max-width: 768px) {
+  .meeting-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+  
+  .meeting-meta {
+    flex-direction: column;
+    gap: 0.5rem;
+    align-items: flex-start;
+  }
+  
+  .meeting-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+  
+  .meeting-actions {
+    width: 100%;
+    display: flex;
+    justify-content: flex-end;
   }
 }
