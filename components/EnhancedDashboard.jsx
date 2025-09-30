@@ -71,8 +71,10 @@ const EnhancedDashboard = () => {
   const [showModal, setShowModal] = useState(false);
   const [modalType, setModalType] = useState('');
   const [meetingLink, setMeetingLink] = useState('');
+  const [meetingTitle, setMeetingTitle] = useState('');
   const [meetingDescription, setMeetingDescription] = useState('');
   const [meetingDateTime, setMeetingDateTime] = useState('');
+  const [meetingDuration, setMeetingDuration] = useState('1 hour');
   const [activeSection, setActiveSection] = useState('home');
   const [scheduledMeetings, setScheduledMeetings] = useState([]);
   const [pastMeetings, setPastMeetings] = useState([]);
@@ -86,74 +88,7 @@ const EnhancedDashboard = () => {
     timestamp: null
   });
 
-  // Demo data for meetings
-  const [demoMeetings, setDemoMeetings] = useState([
-    // Upcoming meetings
-    {
-      id: 'demo-upcoming-1',
-      title: 'Weekly Team Standup',
-      date: new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString(), // 2 hours from now
-      participants: 8,
-      type: 'upcoming',
-      description: 'Daily standup meeting for the development team',
-      host: 'John Doe',
-      duration: '30 min'
-    },
-    {
-      id: 'demo-upcoming-2',
-      title: 'Project Review Meeting',
-      date: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // 1 day from now
-      participants: 12,
-      type: 'upcoming',
-      description: 'Quarterly project review with stakeholders',
-      host: 'Sarah Johnson',
-      duration: '1 hour'
-    },
-    {
-      id: 'demo-upcoming-3',
-      title: 'Client Presentation',
-      date: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(), // 3 days from now
-      participants: 6,
-      type: 'upcoming',
-      description: 'Product demo for potential client',
-      host: 'Mike Chen',
-      duration: '45 min'
-    },
-    // Past meetings
-    {
-      id: 'demo-past-1',
-      title: 'Design Sprint Planning',
-      date: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(), // 2 days ago
-      participants: 10,
-      type: 'past',
-      description: 'Planning session for upcoming design sprint',
-      host: 'Emily Rodriguez',
-      duration: '2 hours',
-      recording: true
-    },
-    {
-      id: 'demo-past-2',
-      title: 'Code Review Session',
-      date: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(), // 5 days ago
-      participants: 5,
-      type: 'past',
-      description: 'Peer code review for authentication module',
-      host: 'Alex Thompson',
-      duration: '1.5 hours',
-      recording: true
-    },
-    {
-      id: 'demo-past-3',
-      title: 'All-Hands Meeting',
-      date: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(), // 1 week ago
-      participants: 25,
-      type: 'past',
-      description: 'Company-wide monthly update meeting',
-      host: 'CEO',
-      duration: '1 hour',
-      recording: true
-    }
-  ]);
+
   
   // Set current time
   useEffect(() => {
@@ -192,24 +127,47 @@ const EnhancedDashboard = () => {
     if (savedMeetings) {
       try {
         allMeetings = JSON.parse(savedMeetings);
-        setScheduledMeetings(allMeetings.filter(meeting => new Date(meeting.date) > new Date()));
+        
+        // Filter meetings based on current time
+        const now = new Date();
+        const upcoming = allMeetings.filter(meeting => new Date(meeting.date) > now)
+          .sort((a, b) => new Date(a.date) - new Date(b.date)); // Sort by soonest first
+        const past = allMeetings.filter(meeting => new Date(meeting.date) <= now)
+          .sort((a, b) => new Date(b.date) - new Date(a.date)); // Sort by most recent first
+        
+        setScheduledMeetings(upcoming);
+        setPastMeetings(past);
       } catch (error) {
         console.error('Error parsing saved meetings:', error);
       }
     }
-
-    // Filter out past meetings (meetings with dates before current time)
-    const now = new Date();
-    const past = allMeetings.filter(meeting => new Date(meeting.date) < now)
-      .sort((a, b) => new Date(b.date) - new Date(a.date)); // Sort by most recent first
-    
-    setPastMeetings(past);
   }, []);
   
   // Save meetings to localStorage when they change
   useEffect(() => {
     const allMeetings = [...scheduledMeetings, ...pastMeetings];
     localStorage.setItem('scheduledMeetings', JSON.stringify(allMeetings));
+  }, [scheduledMeetings, pastMeetings]);
+
+  // Periodically check for meetings that have passed
+  useEffect(() => {
+    const checkExpiredMeetings = () => {
+      const now = new Date();
+      const expiredMeetings = scheduledMeetings.filter(meeting => new Date(meeting.date) <= now);
+      
+      if (expiredMeetings.length > 0) {
+        const stillUpcoming = scheduledMeetings.filter(meeting => new Date(meeting.date) > now);
+        const updatedPast = [...pastMeetings, ...expiredMeetings]
+          .sort((a, b) => new Date(b.date) - new Date(a.date));
+        
+        setScheduledMeetings(stillUpcoming);
+        setPastMeetings(updatedPast);
+      }
+    };
+
+    // Check every minute for expired meetings
+    const interval = setInterval(checkExpiredMeetings, 60000);
+    return () => clearInterval(interval);
   }, [scheduledMeetings, pastMeetings]);
   
   // Handle sidebar navigation
@@ -234,7 +192,9 @@ const EnhancedDashboard = () => {
   const handleScheduleMeeting = () => {
     setModalType('schedule');
     setShowModal(true);
+    setMeetingTitle('');
     setMeetingDescription('');
+    setMeetingDuration('1 hour');
     
     // Set default date time (current time + 1 hour)
     const now = new Date();
@@ -266,29 +226,51 @@ const EnhancedDashboard = () => {
   
   // Schedule a meeting
   const scheduleMeeting = () => {
+    // Validate meeting date is in the future
+    const meetingDate = new Date(meetingDateTime);
+    const now = new Date();
+    
+    if (meetingDate <= now) {
+      setToastMessage("Please select a future date and time for the meeting");
+      setShowToast(true);
+      setTimeout(() => setShowToast(false), 3000);
+      return;
+    }
+    
     // Create a new meeting object
     const newMeeting = {
       id: 'meeting-' + Date.now(),
-      title: meetingDescription || 'Untitled Meeting',
+      title: meetingTitle || 'Untitled Meeting',
       date: meetingDateTime,
-      participants: 0
+      participants: 0,
+      description: meetingDescription || 'No description provided',
+      host: 'You',
+      duration: meetingDuration
     };
     
-    // Add to scheduled meetings
-    setScheduledMeetings([...scheduledMeetings, newMeeting]);
+    // Add to scheduled meetings and sort by date
+    const updatedMeetings = [...scheduledMeetings, newMeeting]
+      .sort((a, b) => new Date(a.date) - new Date(b.date));
+    
+    setScheduledMeetings(updatedMeetings);
     setShowModal(false);
+    
+    // Reset form
+    setMeetingTitle('');
+    setMeetingDescription('');
+    setMeetingDuration('1 hour');
     
     // Switch to upcoming view
     setActiveSection('upcoming');
     
     // Show toast notification
-    setToastMessage("Meeting scheduled for " + new Date(meetingDateTime).toLocaleString());
+    setToastMessage(`Meeting "${newMeeting.title}" scheduled for ${new Date(meetingDateTime).toLocaleString()}`);
     setShowToast(true);
     
-    // Hide toast after 3 seconds
+    // Hide toast after 4 seconds
     setTimeout(() => {
       setShowToast(false);
-    }, 3000);
+    }, 4000);
   };
   
   // Handle personal room
@@ -363,7 +345,7 @@ const EnhancedDashboard = () => {
           <span>Home</span>
         </motion.div>
         
-        {/* <motion.div 
+        <motion.div 
           className={`sidebar-item ${activeSection === 'upcoming' ? 'active' : ''}`}
           onClick={() => handleNavigation('upcoming')}
           whileHover={{ x: 5 }}
@@ -371,9 +353,9 @@ const EnhancedDashboard = () => {
         >
           <FaCalendarAlt size={24} className="sidebar-icon" />
           <span>Upcoming</span>
-        </motion.div> */}
+        </motion.div>
         
-        {/* <motion.div 
+        <motion.div 
           className={`sidebar-item ${activeSection === 'previous' ? 'active' : ''}`}
           onClick={() => handleNavigation('previous')}
           whileHover={{ x: 5 }}
@@ -381,7 +363,7 @@ const EnhancedDashboard = () => {
         >
           <FaHistory size={24} className="sidebar-icon" />
           <span>Previous</span>
-        </motion.div> */}
+        </motion.div>
         
         <motion.div 
           className={`sidebar-item ${activeSection === 'recordings' ? 'active' : ''}`}
@@ -486,7 +468,7 @@ const EnhancedDashboard = () => {
               </motion.div> */}
               
               {/* Schedule Meeting card */}
-              {/* <motion.div 
+              <motion.div 
                 className="action-card violet"
                 onClick={handleScheduleMeeting}
                 variants={itemVariants}
@@ -499,7 +481,7 @@ const EnhancedDashboard = () => {
                   <h3>Schedule Meeting</h3>
                   <p>Plan your meeting</p>
                 </div>
-              </motion.div> */}
+              </motion.div>
               
               {/* View Recordings card */}
               {/* <motion.div 
@@ -558,21 +540,27 @@ const EnhancedDashboard = () => {
                   {scheduledMeetings.map((meeting, index) => (
                     <motion.div 
                       key={meeting.id} 
-                      className="meeting-item"
+                      className="meeting-item upcoming"
                       variants={itemVariants}
                       custom={index}
                       whileHover={{ scale: 1.02, backgroundColor: 'rgba(59, 130, 246, 0.1)' }}
                     >
-                      <div className="meeting-details">
-                        <h3>{meeting.title}</h3>
-                        <p>{formatDate(meeting.date)}</p>
-                        {meeting.participants > 0 && (
-                          <span className="meeting-participants">
-                            {meeting.participants} participants
+                      <div className="meeting-details" style={{ flex: 1, minWidth: 0 }}>
+                        <div className="meeting-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem', gap: '1rem' }}>
+                          <h4 style={{ margin: 0, fontSize: '1.125rem', fontWeight: 600, color: '#f8fafc', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>{meeting.title}</h4>
+                          <span className="meeting-time" style={{ fontSize: '0.875rem', color: '#60a5fa', fontWeight: 500, whiteSpace: 'nowrap', flexShrink: 0 }}>
+                            {formatDate(meeting.date)}
                           </span>
-                        )}
+                        </div>
+                        <p className="meeting-description" style={{ fontSize: '0.875rem', color: '#94a3b8', margin: '0.5rem 0', lineHeight: 1.4 }}>{meeting.description || 'No description provided'}</p>
+                        <div className="meeting-meta" style={{ display: 'flex', gap: '0.5rem', fontSize: '0.75rem', color: '#64748b', alignItems: 'center', marginTop: '0.75rem' }}>
+                          <span className="meeting-duration" style={{ display: 'flex', alignItems: 'center', backgroundColor: 'rgba(51, 65, 85, 0.5)', padding: '0.25rem 0.5rem', borderRadius: '0.5rem' }}>
+                            <FaClock className="meta-icon" style={{ fontSize: '0.75rem', marginRight: '0.25rem' }} />
+                            {meeting.duration || '1 hour'}
+                          </span>
+                        </div>
                       </div>
-                      <div className="meeting-actions">
+                      <div className="meeting-actions" style={{ marginLeft: '1rem', flexShrink: 0 }}>
                         <motion.button 
                           className="join-button"
                           onClick={() => router.push(`/rooms/${meeting.id}`)}
@@ -698,14 +686,17 @@ const EnhancedDashboard = () => {
                   <FaCalendar className="subsection-icon" />
                   <h3>Upcoming Meetings</h3>
                   <span className="meeting-count">
-                    {demoMeetings.filter(m => m.type === 'upcoming').length} meetings
+                    {scheduledMeetings.length} meetings
                   </span>
                 </div>
                 
                 <div className="meeting-list">
-                  {demoMeetings
-                    .filter(meeting => meeting.type === 'upcoming')
-                    .map((meeting, index) => (
+                  {scheduledMeetings.length === 0 ? (
+                    <div className="empty-state">
+                      <p>No upcoming meetings scheduled</p>
+                    </div>
+                  ) : (
+                    scheduledMeetings.map((meeting, index) => (
                       <motion.div 
                         key={meeting.id} 
                         className="meeting-item upcoming"
@@ -713,30 +704,22 @@ const EnhancedDashboard = () => {
                         custom={index}
                         whileHover={{ scale: 1.02, backgroundColor: 'rgba(59, 130, 246, 0.1)' }}
                       >
-                        <div className="meeting-details">
-                          <div className="meeting-header">
-                            <h4>{meeting.title}</h4>
-                            <span className="meeting-time">
+                        <div className="meeting-details" style={{ flex: 1, minWidth: 0 }}>
+                          <div className="meeting-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem', gap: '1rem' }}>
+                            <h4 style={{ margin: 0, fontSize: '1.125rem', fontWeight: 600, color: '#f8fafc', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>{meeting.title}</h4>
+                            <span className="meeting-time" style={{ fontSize: '0.875rem', color: '#60a5fa', fontWeight: 500, whiteSpace: 'nowrap', flexShrink: 0 }}>
                               {formatDate(meeting.date)}
                             </span>
                           </div>
-                          <p className="meeting-description">{meeting.description}</p>
-                          <div className="meeting-meta">
-                            <span className="meeting-host">
-                              <FaUser className="meta-icon" />
-                              {meeting.host}
-                            </span>
-                            <span className="meeting-duration">
-                              <FaClock className="meta-icon" />
-                              {meeting.duration}
-                            </span>
-                            <span className="meeting-participants">
-                              <FaUsers className="meta-icon" />
-                              {meeting.participants} participants
+                          <p className="meeting-description" style={{ fontSize: '0.875rem', color: '#94a3b8', margin: '0.5rem 0', lineHeight: 1.4 }}>{meeting.description || 'No description provided'}</p>
+                          <div className="meeting-meta" style={{ display: 'flex', gap: '0.5rem', fontSize: '0.75rem', color: '#64748b', alignItems: 'center', marginTop: '0.75rem' }}>
+                            <span className="meeting-duration" style={{ display: 'flex', alignItems: 'center', backgroundColor: 'rgba(51, 65, 85, 0.5)', padding: '0.25rem 0.5rem', borderRadius: '0.5rem' }}>
+                              <FaClock className="meta-icon" style={{ fontSize: '0.75rem', marginRight: '0.25rem' }} />
+                              {meeting.duration || '1 hour'}
                             </span>
                           </div>
                         </div>
-                        <div className="meeting-actions">
+                        <div className="meeting-actions" style={{ marginLeft: '1rem', flexShrink: 0 }}>
                           <motion.button 
                             className="join-button"
                             onClick={() => router.push(`/rooms/${meeting.id}`)}
@@ -747,7 +730,8 @@ const EnhancedDashboard = () => {
                           </motion.button>
                         </div>
                       </motion.div>
-                    ))}
+                    ))
+                  )}
                 </div>
               </motion.div>
               
@@ -760,14 +744,17 @@ const EnhancedDashboard = () => {
                   <FaHistory className="subsection-icon" />
                   <h3>Past Meetings</h3>
                   <span className="meeting-count">
-                    {demoMeetings.filter(m => m.type === 'past').length} meetings
+                    {pastMeetings.length} meetings
                   </span>
                 </div>
                 
                 <div className="meeting-list">
-                  {demoMeetings
-                    .filter(meeting => meeting.type === 'past')
-                    .map((meeting, index) => (
+                  {pastMeetings.length === 0 ? (
+                    <div className="empty-state">
+                      <p>No past meetings found</p>
+                    </div>
+                  ) : (
+                    pastMeetings.map((meeting, index) => (
                       <motion.div 
                         key={meeting.id} 
                         className="meeting-item past"
@@ -775,56 +762,34 @@ const EnhancedDashboard = () => {
                         custom={index}
                         whileHover={{ scale: 1.02, backgroundColor: 'rgba(100, 116, 139, 0.1)' }}
                       >
-                        <div className="meeting-details">
-                          <div className="meeting-header">
-                            <h4>{meeting.title}</h4>
-                            <span className="meeting-time">
+                        <div className="meeting-details" style={{ flex: 1, minWidth: 0 }}>
+                          <div className="meeting-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem', gap: '1rem' }}>
+                            <h4 style={{ margin: 0, fontSize: '1.125rem', fontWeight: 600, color: '#f8fafc', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>{meeting.title}</h4>
+                            <span className="meeting-time" style={{ fontSize: '0.875rem', color: '#60a5fa', fontWeight: 500, whiteSpace: 'nowrap', flexShrink: 0 }}>
                               {formatDate(meeting.date)}
                             </span>
                           </div>
-                          <p className="meeting-description">{meeting.description}</p>
-                          <div className="meeting-meta">
-                            <span className="meeting-host">
-                              <FaUser className="meta-icon" />
-                              {meeting.host}
+                          <p className="meeting-description" style={{ fontSize: '0.875rem', color: '#94a3b8', margin: '0.5rem 0', lineHeight: 1.4 }}>{meeting.description || 'No description provided'}</p>
+                          <div className="meeting-meta" style={{ display: 'flex', gap: '0.5rem', fontSize: '0.75rem', color: '#64748b', alignItems: 'center', marginTop: '0.75rem' }}>
+                            <span className="meeting-duration" style={{ display: 'flex', alignItems: 'center', backgroundColor: 'rgba(51, 65, 85, 0.5)', padding: '0.25rem 0.5rem', borderRadius: '0.5rem' }}>
+                              <FaClock className="meta-icon" style={{ fontSize: '0.75rem', marginRight: '0.25rem' }} />
+                              {meeting.duration || '1 hour'}
                             </span>
-                            <span className="meeting-duration">
-                              <FaClock className="meta-icon" />
-                              {meeting.duration}
-                            </span>
-                            <span className="meeting-participants">
-                              <FaUsers className="meta-icon" />
-                              {meeting.participants} participants
-                            </span>
-                            {meeting.recording && (
-                              <span className="recording-badge">
-                                <FaVideo className="meta-icon" />
-                                Recorded
-                              </span>
-                            )}
                           </div>
                         </div>
-                        <div className="meeting-actions">
-                          {meeting.recording ? (
-                            <motion.button 
-                              className="secondary-button"
-                              whileHover={{ scale: 1.05 }}
-                              whileTap={{ scale: 0.95 }}
-                              onClick={() => handleReplayMeeting(meeting.id)}
-                            >
-                              <FaPlay className="mr-2" /> Replay
-                            </motion.button>
-                          ) : (
-                            <motion.button 
-                              className="secondary-button disabled"
-                              disabled
-                            >
-                              <FaPlay className="mr-2" /> No Recording
-                            </motion.button>
-                          )}
+                        <div className="meeting-actions" style={{ marginLeft: '1rem', flexShrink: 0 }}>
+                          <motion.button 
+                            className="secondary-button"
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                            onClick={() => handleReplayMeeting(meeting.id)}
+                          >
+                            <FaPlay className="mr-2" /> View Details
+                          </motion.button>
                         </div>
                       </motion.div>
-                    ))}
+                    ))
+                  )}
                 </div>
               </motion.div>
               
@@ -856,6 +821,12 @@ const EnhancedDashboard = () => {
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
               transition={{ type: "spring", damping: 20 }}
+              style={modalType === 'schedule' ? {
+                maxWidth: '420px',
+                padding: '1.5rem',
+                maxHeight: '85vh',
+                overflowY: 'auto'
+              } : {}}
             >
               <motion.button 
                 className="modal-close" 
@@ -914,30 +885,64 @@ const EnhancedDashboard = () => {
               
               {modalType === 'schedule' && (
                 <>
-                  <div className="modal-header">
-                    <div className="modal-icon">
-                      <FaCalendarAlt size={48} />
+                  <div className="modal-header" style={{ marginBottom: '1rem' }}>
+                    <div className="modal-icon" style={{ marginBottom: '0.5rem' }}>
+                      <FaCalendarAlt size={32} />
                     </div>
-                    <h2>Create Meeting</h2>
+                    <h2 style={{ fontSize: '1.25rem', margin: '0' }}>Create Meeting</h2>
                   </div>
+                  <p className="input-label" style={{ fontSize: '0.875rem', margin: '0 0 0.25rem 0', fontWeight: '500' }}>Meeting Title</p>
+                  <input 
+                    type="text"
+                    placeholder="Enter meeting title" 
+                    value={meetingTitle}
+                    onChange={(e) => setMeetingTitle(e.target.value)}
+                    className="modal-input"
+                    style={{ marginBottom: '0.75rem', padding: '0.5rem', fontSize: '0.875rem' }}
+                  />
+                  <p className="input-label" style={{ fontSize: '0.875rem', margin: '0 0 0.25rem 0', fontWeight: '500' }}>Description (Optional)</p>
                   <textarea 
-                    placeholder="Add a description" 
+                    placeholder="Add meeting description or agenda" 
                     value={meetingDescription}
                     onChange={(e) => setMeetingDescription(e.target.value)}
                     className="modal-textarea"
+                    rows={2}
+                    style={{ marginBottom: '0.75rem', padding: '0.5rem', fontSize: '0.875rem', resize: 'vertical', minHeight: '60px' }}
                   />
-                  <p className="input-label">Select Date and Time</p>
-                  <input 
-                    type="datetime-local" 
-                    value={meetingDateTime}
-                    onChange={(e) => setMeetingDateTime(e.target.value)}
-                    className="modal-input"
-                  />
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '0.75rem' }}>
+                    <div>
+                      <p className="input-label" style={{ fontSize: '0.875rem', margin: '0 0 0.25rem 0', fontWeight: '500' }}>Duration</p>
+                      <select 
+                        value={meetingDuration}
+                        onChange={(e) => setMeetingDuration(e.target.value)}
+                        className="modal-input"
+                        style={{ padding: '0.5rem', fontSize: '0.875rem', width: '100%' }}
+                      >
+                        <option value="30 minutes">30 min</option>
+                        <option value="1 hour">1 hour</option>
+                        <option value="1.5 hours">1.5 hours</option>
+                        <option value="2 hours">2 hours</option>
+                        <option value="3 hours">3 hours</option>
+                        <option value="All day">All day</option>
+                      </select>
+                    </div>
+                    <div>
+                      <p className="input-label" style={{ fontSize: '0.875rem', margin: '0 0 0.25rem 0', fontWeight: '500' }}>Date & Time</p>
+                      <input 
+                        type="datetime-local" 
+                        value={meetingDateTime}
+                        onChange={(e) => setMeetingDateTime(e.target.value)}
+                        className="modal-input"
+                        style={{ padding: '0.5rem', fontSize: '0.875rem', width: '100%' }}
+                      />
+                    </div>
+                  </div>
                   <motion.button 
                     className="modal-button" 
                     onClick={scheduleMeeting}
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
+                    style={{ padding: '0.75rem 1.5rem', fontSize: '0.875rem', marginTop: '0.5rem' }}
                   >
                     Schedule Meeting
                   </motion.button>
